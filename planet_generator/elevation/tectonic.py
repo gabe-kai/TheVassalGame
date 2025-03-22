@@ -27,6 +27,9 @@ def compute_tectonic_elevation(vertices, faces):
         print("[DEBUG] Seeding cratons...")
     craton_seeds = seed_cratons(total_faces, estimated_craton_count, rng)
     if config.debug_mode:
+        print("[DEBUG] Assigning plate types...")
+    plate_types = assign_plate_types(craton_seeds, rng)
+    if config.debug_mode:
         print("[DEBUG] Building adjacency map...")
     adjacency = build_adjacency(faces)
     if config.debug_mode:
@@ -36,25 +39,19 @@ def compute_tectonic_elevation(vertices, faces):
     if config.debug_mode:
         print(f"[DEBUG] Unassigned faces after growth: {unassigned_count}")
     if config.debug_mode:
-        print("[DEBUG] Assigning oceanic cratons...")
-    oceanic_cratons = assign_oceanic_cratons(estimated_craton_count, rng)
-    if config.debug_mode:
         print("[DEBUG] Assigning motion vectors...")
-    motion_vectors = assign_motion_vectors(estimated_craton_count, rng)
+    motion_vectors = assign_motion_vectors(list(plate_types.keys()), rng)
 
     if config.debug_mode:
         print("[DEBUG] Applying boundary interactions...")
     face_elevations = [0.0 for _ in faces]
-    apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vectors, face_elevations, rng)
+    apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vectors, face_elevations, rng, plate_types)
     if config.debug_mode:
         print("[DEBUG] Smoothing elevation boundaries...")
     smooth_boundaries(faces, adjacency, face_elevations)
     if config.debug_mode:
-        print("[DEBUG] Applying ocean basin adjustments...")
-    apply_ocean_basins(assigned, oceanic_cratons, face_elevations)
-    if config.debug_mode:
         print("[DEBUG] Slope-craton-center elevation pass...")
-    slope_craton_centers(vertices, faces, assigned, oceanic_cratons, face_elevations, adjacency)
+    slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations, adjacency)
 
     return face_elevations, assigned, motion_vectors
 
@@ -62,10 +59,44 @@ def compute_tectonic_elevation(vertices, faces):
 # --- Helper Functions ---
 
 def seed_cratons(total_faces, count, rng):
+    """
+    Selects `count` random face indices to act as tectonic plate seeds (cratons).
+    """
     return rng.choice(total_faces, size=count, replace=False)
 
 
+def assign_plate_types(craton_seeds, rng):
+    """
+    Assigns each craton (seed) as 'oceanic' or 'continental' up front
+    based on config.oceanic_craton_fraction.
+    Returns a dict {seed_face: 'oceanic'|'continental'}
+    """
+    if config.debug_mode:
+        oceanic = 0
+        continental = 0
+
+    plate_types = {}
+    for seed in craton_seeds:
+        if rng.random() < config.oceanic_craton_fraction:
+            plate_types[seed] = "oceanic"
+            if config.debug_mode:
+                oceanic += 1
+            plate_types[seed] = "oceanic"
+        else:
+            plate_types[seed] = "continental"
+            if config.debug_mode:
+                continental += 1
+    if config.debug_mode:
+        print(f"[DEBUG] Plate types assigned: {continental} continental, {oceanic} oceanic")
+
+    return plate_types
+
+
 def build_adjacency(faces):
+    """
+    Builds an adjacency map for each face index based on shared vertices.
+    Returns a dictionary: {face_index: set(neighbor_indices)}
+    """
     adjacency = {i: set() for i in range(len(faces))}
     vertex_to_faces = {}
     for i, tri in enumerate(faces):
@@ -81,16 +112,20 @@ def build_adjacency(faces):
 
 
 def grow_cratons(faces, craton_seeds, adjacency):
+    """
+    Grows each craton outward using BFS from its seed face, assigning all reachable faces.
+    Returns a list: assigned[face_index] = craton_id
+    """
     total_faces = len(faces)
     assigned = [-1] * total_faces
-    queues = [deque([seed]) for seed in craton_seeds]
-    for idx, seed in enumerate(craton_seeds):
-        assigned[seed] = idx
+    queues = {seed: deque([seed]) for seed in craton_seeds}
+    for seed in craton_seeds:
+        assigned[seed] = seed
 
     active = True
     while active:
         active = False
-        for craton_id, queue in enumerate(queues):
+        for craton_id, queue in queues.items():
             if not queue:
                 continue
             face = queue.popleft()
@@ -102,51 +137,72 @@ def grow_cratons(faces, craton_seeds, adjacency):
     return assigned
 
 
-def assign_oceanic_cratons(count, rng):
-    num_oceanic = int(count * config.oceanic_craton_fraction)
-    oceanic = set(rng.choice(count, size=num_oceanic, replace=False))
-    if config.debug_mode:
-        print(f"[DEBUG] Oceanic cratons: {sorted(oceanic)}")
-    return oceanic
-
-
-def assign_motion_vectors(count, rng):
+def assign_motion_vectors(craton_ids, rng):
+    """
+    Assigns a normalized 3D motion vector to each craton ID.
+    Returns a dictionary: {craton_id: vector (np.array)}
+    """
     vectors = {}
-    for craton_id in range(count):
+    for craton_id in craton_ids:
         vec = rng.normal(size=3)
         vec /= np.linalg.norm(vec)
         vectors[craton_id] = vec
-    if config.debug_mode:
-        for cid, vec in vectors.items():
-            print(f"[DEBUG] Craton {cid} motion vector: ({vec[0]:.3f}, {vec[1]:.3f}, {vec[2]:.3f})")
+#    if config.debug_mode:
+#        for cid, vec in vectors.items():
+#            print(f"[DEBUG] Craton {cid} motion vector: ({vec[0]:.3f}, {vec[1]:.3f}, {vec[2]:.3f})")
     return vectors
 
 
-def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vectors, face_elevations, rng):
-    converging_lift = config.height_amplitude * 0.75
-    diverging_trench = -config.height_amplitude * 0.5
-    transform_variation = config.height_amplitude * 0.1
+def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vectors, face_elevations, rng, plate_types):
+    """
+    Applies tectonic elevation changes at boundaries,
+    using plate type logic for more realistic mountains/trenches.
+    """
     threshold = 0.1
     debug_count = 0
 
-    for face_idx, neighbors in adjacency.items():
-        for neighbor_idx in neighbors:
-            plate_a = assigned[face_idx]
-            plate_b = assigned[neighbor_idx]
-            if plate_a == -1 or plate_b == -1 or plate_a == plate_b:
-                continue
+    # Example constants (tweak as desired)
+    # Converging lifts
+    cont_cont_converge = config.height_amplitude * 0.8       # big mountains for continental collision
+    cont_ocean_converge_cont_side = config.height_amplitude  # tall coastal mountains
+    cont_ocean_converge_ocean_side = -config.height_amplitude * 0.6  # trench
+    ocean_ocean_converge = config.height_amplitude * 0.3      # island arcs
 
+    # Diverging lowers or forms ridges
+    cont_cont_diverge = -config.height_amplitude * 0.2        # continental rift
+    ocean_ocean_diverge = config.height_amplitude * 0.2       # mid-ocean ridge
+    cont_ocean_diverge = -config.height_amplitude * 0.1       # mild rift near coasts
+
+    # Transform gets random fracturing
+    transform_variation = config.height_amplitude * 0.1
+
+    for face_idx, neighbors in adjacency.items():
+        plate_a = assigned[face_idx]
+        if plate_a == -1:
+            continue
+        ptype_a = plate_types.get(plate_a, "continental")
+
+        for neighbor_idx in neighbors:
+            plate_b = assigned[neighbor_idx]
+            if plate_b == -1 or plate_b == plate_a:
+                continue
+            ptype_b = plate_types.get(plate_b, "continental")
+
+            # Face centers
             pos_a = np.mean(vertices[faces[face_idx]], axis=0)
             pos_b = np.mean(vertices[faces[neighbor_idx]], axis=0)
             direction = pos_b - pos_a
-            if np.linalg.norm(direction) == 0:
+            norm_dir = np.linalg.norm(direction)
+            if norm_dir == 0:
                 continue
-            direction /= np.linalg.norm(direction)
+            direction /= norm_dir
 
+            # Relative motion
             vec_a = motion_vectors[plate_a]
             vec_b = motion_vectors[plate_b]
             relative_motion = np.dot(vec_b - vec_a, direction)
 
+            # Classify boundary
             interaction = "transform"
             if relative_motion > threshold:
                 interaction = "diverging"
@@ -154,19 +210,55 @@ def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vec
                 interaction = "converging"
 
             if interaction == "converging":
-                face_elevations[face_idx] += converging_lift
-                face_elevations[neighbor_idx] += converging_lift
+                # Each pair of plate types has custom logic
+                if ptype_a == "continental" and ptype_b == "continental":
+                    # Big collision mountains
+                    face_elevations[face_idx] += cont_cont_converge
+                    face_elevations[neighbor_idx] += cont_cont_converge
+
+                elif ptype_a == "continental" and ptype_b == "oceanic":
+                    # Mountain on continental side, trench on ocean side
+                    face_elevations[face_idx] += cont_ocean_converge_cont_side
+                    face_elevations[neighbor_idx] += cont_ocean_converge_ocean_side
+
+                elif ptype_a == "oceanic" and ptype_b == "continental":
+                    # Trench on plate_a, mountain on plate_b
+                    face_elevations[face_idx] += cont_ocean_converge_ocean_side
+                    face_elevations[neighbor_idx] += cont_ocean_converge_cont_side
+
+                else:  # oceanic-oceanic
+                    face_elevations[face_idx] += ocean_ocean_converge
+                    face_elevations[neighbor_idx] += ocean_ocean_converge
+
             elif interaction == "diverging":
-                face_elevations[face_idx] += diverging_trench
-                face_elevations[neighbor_idx] += diverging_trench
-            elif interaction == "transform":
+                # Similar logic for plate combos
+                if ptype_a == "continental" and ptype_b == "continental":
+                    face_elevations[face_idx] += cont_cont_diverge
+                    face_elevations[neighbor_idx] += cont_cont_diverge
+
+                elif ptype_a == "oceanic" and ptype_b == "oceanic":
+                    # mid-ocean ridge
+                    face_elevations[face_idx] += ocean_ocean_diverge
+                    face_elevations[neighbor_idx] += ocean_ocean_diverge
+
+                else:
+                    # oceanic <-> continental
+                    face_elevations[face_idx] += cont_ocean_diverge
+                    face_elevations[neighbor_idx] += cont_ocean_diverge
+
+            else:  # transform
                 noise = rng.uniform(-transform_variation, transform_variation)
                 face_elevations[face_idx] += noise
                 face_elevations[neighbor_idx] += noise
 
-            if config.debug_mode and debug_count < 20:
-                print(f"[DEBUG] Face {face_idx} ↔ {neighbor_idx}: {interaction.upper()} (Δv • dir = {relative_motion:.3f})")
+            debug_count_display_limit = 10
+            if config.debug_mode and debug_count < debug_count_display_limit:
+                print(f"[DEBUG] Face {face_idx}↔{neighbor_idx}: {interaction.upper()} ({ptype_a} vs {ptype_b}) Δv•dir = {relative_motion:.3f}")
                 debug_count += 1
+
+    if config.debug_mode:
+        print(f"[DEBUG] First  {debug_count_display_limit} boundary interactions displayed...")
+
 
 
 def smooth_boundaries(faces, adjacency, face_elevations):
@@ -205,14 +297,12 @@ def smooth_boundaries(faces, adjacency, face_elevations):
         face_elevations[i] = influence[i]
 
 
-def apply_ocean_basins(assigned, oceanic_cratons, face_elevations):
-    ocean_depth = -config.height_amplitude * 0.5
-    for i, craton_id in enumerate(assigned):
-        if craton_id in oceanic_cratons:
-            face_elevations[i] += ocean_depth
-
-
-def slope_craton_centers(vertices, faces, assigned, oceanic_cratons, face_elevations, adjacency):
+def slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations, adjacency):
+    """
+    Applies elevation slope from the center of each craton outward.
+    Oceanic plates slope up toward the edge; continental plates slope down.
+    Also factors in nearby mountain/trench elevation to adjust slope locally.
+    """
     craton_faces = {}
     for i, cid in enumerate(assigned):
         if cid not in craton_faces:
@@ -230,7 +320,8 @@ def slope_craton_centers(vertices, faces, assigned, oceanic_cratons, face_elevat
             dist = np.linalg.norm(plate_center - face_center)
             dist_weight = dist / config.radius
 
-            if craton_id in oceanic_cratons:
+            plate_type = plate_types.get(craton_id, "continental")
+            if plate_type == "oceanic":
                 slope = -config.height_amplitude * 0.2 * (1 - dist_weight)  # slope UP to shore
             else:
                 slope = config.height_amplitude * 0.2 * (1 - dist_weight)  # slope DOWN to shore

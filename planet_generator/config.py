@@ -14,7 +14,7 @@ noise_warp = 2.0                # Adds turbulence to noise. 0 = no warp. 1–5 =
 octaves = 3                     # Number of Perlin noise layers. 1–6 recommended.
 persistence = 0.5               # Falloff per octave. Range: 0–1. Lower = smoother terrain.
 # Tectonic parameters
-craton_count = 0                # If not specified it will become a function of the planets surface area.
+craton_count = 0                # If 0 it will be a function of the planets surface area.
 oceanic_craton_fraction = 0.6   # At 0.5, half of cratons will be ocean plates
 
 apply_elevation = True
