@@ -32,6 +32,9 @@ def compute_tectonic_elevation(vertices, faces):
     if config.debug_mode:
         print("[DEBUG] Growing cratons...")
     assigned = grow_cratons(faces, craton_seeds, adjacency)
+    unassigned_count = sum(1 for cid in assigned if cid == -1)
+    if config.debug_mode:
+        print(f"[DEBUG] Unassigned faces after growth: {unassigned_count}")
     if config.debug_mode:
         print("[DEBUG] Assigning oceanic cratons...")
     oceanic_cratons = assign_oceanic_cratons(estimated_craton_count, rng)
