@@ -165,16 +165,16 @@ def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vec
     # Converging lifts
     cont_cont_converge = config.height_amplitude * 0.8       # big mountains for continental collision
     cont_ocean_converge_cont_side = config.height_amplitude  # tall coastal mountains
-    cont_ocean_converge_ocean_side = -config.height_amplitude * 0.6  # trench
+    cont_ocean_converge_ocean_side = -config.height_amplitude * 0.8  # trench
     ocean_ocean_converge = config.height_amplitude * 0.3      # island arcs
 
     # Diverging lowers or forms ridges
     cont_cont_diverge = -config.height_amplitude * 0.2        # continental rift
-    ocean_ocean_diverge = config.height_amplitude * 0.2       # mid-ocean ridge
+    ocean_ocean_diverge = config.height_amplitude * 0.1       # mid-ocean ridge
     cont_ocean_diverge = -config.height_amplitude * 0.1       # mild rift near coasts
 
     # Transform gets random fracturing
-    transform_variation = config.height_amplitude * 0.1
+    transform_variation = config.height_amplitude * 0.05
 
     for face_idx, neighbors in adjacency.items():
         plate_a = assigned[face_idx]
@@ -322,7 +322,7 @@ def slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations
 
             plate_type = plate_types.get(craton_id, "continental")
             if plate_type == "oceanic":
-                slope = -config.height_amplitude * 0.2 * (1 - dist_weight)  # slope UP to shore
+                slope = -config.height_amplitude * 0.4 * (1 - dist_weight)  # slope UP to shore
             else:
                 slope = config.height_amplitude * 0.2 * (1 - dist_weight)  # slope DOWN to shore
 
@@ -348,3 +348,5 @@ def slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations
                 frontier = next_frontier
 
             face_elevations[i] += slope
+            if plate_type == "oceanic":
+                face_elevations[i] += -config.height_amplitude * 0.1  # base oceanic offset

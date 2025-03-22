@@ -5,7 +5,11 @@ radius = 25500                  # Base radius of the planet (km). Can be any pos
 subdivision_depth = 6           # Icosphere detail level. Integer >= 0. Higher = more triangles.
 
 # Noise & elevation
+apply_elevation = True
 elevation_method = "tectonic"   # Options: "perlin" or "tectonic"
+height_amplitude = 1200         # Maximum elevation displacement in km. Suggested: 200–3000
+sea_level = 0.0                 # Base elevation of sea level
+
 # Perlin parameters
 noise_scale = 0.00005           # Controls frequency of terrain noise. Lower = larger features. Suggested: 0.00001–0.001
 noise_offset_x = 0.3            # Horizontal shift of noise pattern. Can be any float.
@@ -15,13 +19,10 @@ octaves = 3                     # Number of Perlin noise layers. 1–6 recommend
 persistence = 0.5               # Falloff per octave. Range: 0–1. Lower = smoother terrain.
 # Tectonic parameters
 craton_count = 0                # If 0 it will be a function of the planets surface area.
-oceanic_craton_fraction = 0.6   # At 0.5, half of cratons will be ocean plates
-
-apply_elevation = True
-height_amplitude = 1200         # Maximum elevation displacement in km. Suggested: 200–3000
+oceanic_craton_fraction = 0.5   # At 0.5, half of cratons will be ocean plates
 
 # Ocean mesh & resolution (for export and plot)
-generate_ocean = False          # Toggle ocean mesh generation and export
+generate_ocean = False          # Toggle ocean mesh (as a separate object) generation and export
 ocean_u_resolution = 128        # Horizontal segments (longitude)
 ocean_v_resolution = 64         # Vertical segments (latitude)
 
