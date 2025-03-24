@@ -58,3 +58,23 @@ def subdivide(vertices, faces, depth):
         faces = np.array(new_faces)
 
     return np.array(vertices), faces
+
+
+def build_adjacency(faces):
+    """
+    Builds an adjacency map for each face index based on shared vertices.
+    Returns a dictionary: {face_index: set(neighbor_indices)}
+    """
+    adjacency = {i: set() for i in range(len(faces))}
+    vertex_to_faces = {}
+    for i, tri in enumerate(faces):
+        for v in tri:
+            vertex_to_faces.setdefault(v, set()).add(i)
+    for i, tri in enumerate(faces):
+        neighbors = set()
+        for v in tri:
+            neighbors.update(vertex_to_faces[v])
+        neighbors.discard(i)
+        adjacency[i] = neighbors
+    return adjacency
+

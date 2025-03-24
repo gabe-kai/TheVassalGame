@@ -6,13 +6,13 @@ from collections import deque
 from planet_generator import config
 
 
-def compute_tectonic_elevation(vertices, faces):
+def compute_tectonic_elevation(vertices, faces, adjacency):
     """
     Simulates tectonic elevation changes using craton seeding, motion vectors,
     boundary interactions, and smoothing.
     Returns:
         - face_elevations: list of elevation values per face
-        - assigned: list of craton ID for each face
+        - craton_faces: list of craton ID for each face
         - motion_vectors: dict of craton_id to motion vector
     """
     if config.debug_mode:
@@ -23,37 +23,32 @@ def compute_tectonic_elevation(vertices, faces):
     estimated_craton_count = config.craton_count or max(8, int(surface_area_km2 / 8e7))
     rng = np.random.default_rng(config.qi_pool_seed)
 
-    if config.debug_mode:
-        print("[DEBUG] Seeding cratons...")
+    # Seed the craton starting spots on random faces
     craton_seeds = seed_cratons(total_faces, estimated_craton_count, rng)
-    if config.debug_mode:
-        print("[DEBUG] Assigning plate types...")
+
+    # Assign the plate types as "Continental" or "Oceanic" immediately after seeding.
     plate_types = assign_plate_types(craton_seeds, rng)
+
+    # Grow the cratons until they fill the map.
+    craton_faces = grow_cratons(faces, craton_seeds, adjacency)
     if config.debug_mode:
-        print("[DEBUG] Building adjacency map...")
-    adjacency = build_adjacency(faces)
-    if config.debug_mode:
-        print("[DEBUG] Growing cratons...")
-    assigned = grow_cratons(faces, craton_seeds, adjacency)
-    unassigned_count = sum(1 for cid in assigned if cid == -1)
-    if config.debug_mode:
+        unassigned_count = sum(1 for cid in craton_faces if cid == -1)
         print(f"[DEBUG] Unassigned faces after growth: {unassigned_count}")
-    if config.debug_mode:
-        print("[DEBUG] Assigning motion vectors...")
+
+    # Assign motion vectors, which will be used for interaction boundaries.
     motion_vectors = assign_motion_vectors(list(plate_types.keys()), rng)
 
-    if config.debug_mode:
-        print("[DEBUG] Applying boundary interactions...")
+    # Calculate the interaction boundaries, Diverging of Converging.
     face_elevations = [0.0 for _ in faces]
-    apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vectors, face_elevations, rng, plate_types)
-    if config.debug_mode:
-        print("[DEBUG] Smoothing elevation boundaries...")
-    smooth_boundaries(faces, adjacency, face_elevations)
-    if config.debug_mode:
-        print("[DEBUG] Slope-craton-center elevation pass...")
-    slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations, adjacency)
+    apply_boundary_interactions(vertices, faces, adjacency, craton_faces, motion_vectors, face_elevations, rng, plate_types)
 
-    return face_elevations, assigned, motion_vectors
+    # Smooth out the elevation boundaries.
+    smooth_boundaries(faces, adjacency, face_elevations)
+
+    # Slope the cratons: Ocean cratons up toward the shores, continental cratons down toward the shore
+    slope_craton_centers(vertices, faces, craton_faces, plate_types, face_elevations, adjacency)
+
+    return face_elevations, craton_faces, motion_vectors
 
 
 # --- Helper Functions ---
@@ -62,6 +57,9 @@ def seed_cratons(total_faces, count, rng):
     """
     Selects `count` random face indices to act as tectonic plate seeds (cratons).
     """
+    if config.debug_mode:
+        print("[DEBUG] Seeding cratons...")
+
     return rng.choice(total_faces, size=count, replace=False)
 
 
@@ -72,6 +70,7 @@ def assign_plate_types(craton_seeds, rng):
     Returns a dict {seed_face: 'oceanic'|'continental'}
     """
     if config.debug_mode:
+        print("[DEBUG] Assigning plate types...")
         oceanic = 0
         continental = 0
 
@@ -92,35 +91,19 @@ def assign_plate_types(craton_seeds, rng):
     return plate_types
 
 
-def build_adjacency(faces):
-    """
-    Builds an adjacency map for each face index based on shared vertices.
-    Returns a dictionary: {face_index: set(neighbor_indices)}
-    """
-    adjacency = {i: set() for i in range(len(faces))}
-    vertex_to_faces = {}
-    for i, tri in enumerate(faces):
-        for v in tri:
-            vertex_to_faces.setdefault(v, set()).add(i)
-    for i, tri in enumerate(faces):
-        neighbors = set()
-        for v in tri:
-            neighbors.update(vertex_to_faces[v])
-        neighbors.discard(i)
-        adjacency[i] = neighbors
-    return adjacency
-
-
 def grow_cratons(faces, craton_seeds, adjacency):
     """
     Grows each craton outward using BFS from its seed face, assigning all reachable faces.
     Returns a list: assigned[face_index] = craton_id
     """
+    if config.debug_mode:
+        print("[DEBUG] Growing cratons...")
+
     total_faces = len(faces)
-    assigned = [-1] * total_faces
+    assigned_craton_faces = [-1] * total_faces
     queues = {seed: deque([seed]) for seed in craton_seeds}
     for seed in craton_seeds:
-        assigned[seed] = seed
+        assigned_craton_faces[seed] = seed
 
     active = True
     while active:
@@ -130,11 +113,12 @@ def grow_cratons(faces, craton_seeds, adjacency):
                 continue
             face = queue.popleft()
             for neighbor in adjacency[face]:
-                if assigned[neighbor] == -1:
-                    assigned[neighbor] = craton_id
+                if assigned_craton_faces[neighbor] == -1:
+                    assigned_craton_faces[neighbor] = craton_id
                     queue.append(neighbor)
                     active = True
-    return assigned
+
+    return assigned_craton_faces
 
 
 def assign_motion_vectors(craton_ids, rng):
@@ -142,6 +126,9 @@ def assign_motion_vectors(craton_ids, rng):
     Assigns a normalized 3D motion vector to each craton ID.
     Returns a dictionary: {craton_id: vector (np.array)}
     """
+    if config.debug_mode:
+        print("[DEBUG] Assigning motion vectors...")
+
     vectors = {}
     for craton_id in craton_ids:
         vec = rng.normal(size=3)
@@ -150,6 +137,7 @@ def assign_motion_vectors(craton_ids, rng):
 #    if config.debug_mode:
 #        for cid, vec in vectors.items():
 #            print(f"[DEBUG] Craton {cid} motion vector: ({vec[0]:.3f}, {vec[1]:.3f}, {vec[2]:.3f})")
+
     return vectors
 
 
@@ -158,6 +146,9 @@ def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vec
     Applies tectonic elevation changes at boundaries,
     using plate type logic for more realistic mountains/trenches.
     """
+    if config.debug_mode:
+        print("[DEBUG] Applying boundary interactions...")
+
     threshold = 0.1
     debug_count = 0
 
@@ -267,6 +258,9 @@ def smooth_boundaries(faces, adjacency, face_elevations):
     This version avoids spreading from very high elevation (mountain) peaks,
     to preserve sharp summits while allowing wide foothill regions.
     """
+    if config.debug_mode:
+        print("[DEBUG] Smoothing elevation boundaries...")
+
     max_smoothing_layers = 6
     decay_factor = 0.07
     total_faces = len(faces)
@@ -303,6 +297,9 @@ def slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations
     Oceanic plates slope up toward the edge; continental plates slope down.
     Also factors in nearby mountain/trench elevation to adjust slope locally.
     """
+    if config.debug_mode:
+        print("[DEBUG] Slope-craton-center elevation pass...")
+
     craton_faces = {}
     for i, cid in enumerate(assigned):
         if cid not in craton_faces:
@@ -348,5 +345,3 @@ def slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations
                 frontier = next_frontier
 
             face_elevations[i] += slope
-            if plate_type == "oceanic":
-                face_elevations[i] += -config.height_amplitude * 0.1  # base oceanic offset
