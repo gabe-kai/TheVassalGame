@@ -29,8 +29,11 @@ def compute_tectonic_elevation(vertices, faces, adjacency):
     # Assign the plate types as "Continental" or "Oceanic" immediately after seeding.
     plate_types = assign_plate_types(craton_seeds, rng)
 
+    # Initialize elevations before growing cratons
+    face_elevations = [0.0 for _ in faces]
+
     # Grow the cratons until they fill the map.
-    craton_faces = grow_cratons(faces, craton_seeds, adjacency)
+    craton_faces = grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations)
     if config.debug_mode:
         unassigned_count = sum(1 for cid in craton_faces if cid == -1)
         print(f"[DEBUG] Unassigned faces after growth: {unassigned_count}")
@@ -39,7 +42,6 @@ def compute_tectonic_elevation(vertices, faces, adjacency):
     motion_vectors = assign_motion_vectors(list(plate_types.keys()), rng)
 
     # Calculate the interaction boundaries, Diverging of Converging.
-    face_elevations = [0.0 for _ in faces]
     apply_boundary_interactions(vertices, faces, adjacency, craton_faces, motion_vectors, face_elevations, rng, plate_types)
 
     # Smooth out the elevation boundaries.
@@ -80,7 +82,6 @@ def assign_plate_types(craton_seeds, rng):
             plate_types[seed] = "oceanic"
             if config.debug_mode:
                 oceanic += 1
-            plate_types[seed] = "oceanic"
         else:
             plate_types[seed] = "continental"
             if config.debug_mode:
@@ -91,9 +92,10 @@ def assign_plate_types(craton_seeds, rng):
     return plate_types
 
 
-def grow_cratons(faces, craton_seeds, adjacency):
+def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
     """
     Grows each craton outward using BFS from its seed face, assigning all reachable faces.
+    Sets the base elevation based on craton type during assignment.
     Returns a list: assigned[face_index] = craton_id
     """
     if config.debug_mode:
@@ -104,6 +106,8 @@ def grow_cratons(faces, craton_seeds, adjacency):
     queues = {seed: deque([seed]) for seed in craton_seeds}
     for seed in craton_seeds:
         assigned_craton_faces[seed] = seed
+        base_elevation = -config.height_amplitude * 0.3 if plate_types[seed] == "oceanic" else config.height_amplitude * 0.1
+        face_elevations[seed] = base_elevation
 
     active = True
     while active:
@@ -117,6 +121,9 @@ def grow_cratons(faces, craton_seeds, adjacency):
                     assigned_craton_faces[neighbor] = craton_id
                     queue.append(neighbor)
                     active = True
+                    # Propagate base elevation
+                    base_elevation = -config.height_amplitude * 0.3 if plate_types[craton_id] == "oceanic" else config.height_amplitude * 0.1
+                    face_elevations[neighbor] = base_elevation
 
     return assigned_craton_faces
 
