@@ -8,75 +8,107 @@ from planet_generator import config
 
 def compute_tectonic_elevation(vertices, faces, adjacency):
     """
-    Simulates tectonic elevation changes using craton seeding, motion vectors,
-    boundary interactions, and smoothing.
+    Simulates tectonic elevation changes on a planet surface.
+
+    This process includes:
+        - Seeding tectonic cratons
+        - Assigning continental vs oceanic plates
+        - Growing cratons across the face network
+        - Computing relative plate motion vectors
+        - Applying elevation change from plate interactions
+        - Smoothing boundaries
+        - Sloping craton interiors toward edges
+
+    Args:
+        vertices (np.ndarray): Array of shape (N, 3) with vertex coordinates.
+        faces (list[tuple[int]]): List of face index groups (triplets of vertex indices).
+        adjacency (dict[int, list[int]]): Map of face index to neighboring face indices.
+
     Returns:
-        - face_elevations: list of elevation values per face
-        - craton_faces: list of craton ID for each face
-        - motion_vectors: dict of craton_id to motion vector
+        face_elevations: List of float elevation values per face
+        craton_faces: List of craton IDs per face
+        motion_vectors: Dict of craton_id to 3D motion vector
     """
     if config.debug_mode:
         print("[DEBUG] Starting tectonic elevation computation...")
 
+    vertices: np.ndarray = np.array(vertices, dtype=np.float64)
     total_faces = len(faces)
     surface_area_km2 = 4 * math.pi * config.radius**2
     estimated_craton_count = config.craton_count or max(8, int(surface_area_km2 / 8e7))
     rng = np.random.default_rng(config.qi_pool_seed)
 
-    # Seed the craton starting spots on random faces
-    craton_seeds = seed_cratons(total_faces, estimated_craton_count, rng)
+    # Seed the craton starting spots on random faces, and then assign face types (Continental or Oceanic).
+    craton_seeds, plate_types = seed_cratons_with_types(total_faces, estimated_craton_count, rng)
 
-    # Assign the plate types as "Continental" or "Oceanic" immediately after seeding.
-    plate_types = assign_plate_types(craton_seeds, rng)
-
-    # Initialize elevations before growing cratons
+    # Initialize elevations and then grow the cratons until they fill the map
     face_elevations = [0.0 for _ in faces]
-
-    # Grow the cratons until they fill the map.
     craton_faces = grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations)
     if config.debug_mode:
         unassigned_count = sum(1 for cid in craton_faces if cid == -1)
         print(f"[DEBUG] Unassigned faces after growth: {unassigned_count}")
 
-    # Assign motion vectors, which will be used for interaction boundaries.
+    # Assign motion vectors, calculate boundary interactions, smooth the boundaries, and slope the cratons
     motion_vectors = assign_motion_vectors(list(plate_types.keys()), rng)
-
-    # Calculate the interaction boundaries, Diverging of Converging.
     apply_boundary_interactions(vertices, faces, adjacency, craton_faces, motion_vectors, face_elevations, rng, plate_types)
-
-    # Smooth out the elevation boundaries.
     smooth_boundaries(faces, adjacency, face_elevations)
-
-    # Slope the cratons: Ocean cratons up toward the shores, continental cratons down toward the shore
     slope_craton_centers(vertices, faces, craton_faces, plate_types, face_elevations, adjacency)
+
+    if config.debug_mode:
+        elevations = np.array(face_elevations)
+        min_elev = elevations.min()
+        max_elev = elevations.max()
+        ocean_indices = [i for i, cid in enumerate(craton_faces) if plate_types.get(cid) == "oceanic"]
+        cont_indices = [i for i, cid in enumerate(craton_faces) if plate_types.get(cid) == "continental"]
+
+        ocean_depths = elevations[ocean_indices] if ocean_indices else np.array([])
+        cont_heights = elevations[cont_indices] if cont_indices else np.array([])
+
+        avg_ocean = ocean_depths.mean() if len(ocean_depths) > 0 else 0.0
+        avg_cont = cont_heights.mean() if len(cont_heights) > 0 else 0.0
+        trench_avg = ocean_depths[ocean_depths < avg_ocean].mean() if len(ocean_depths[ocean_depths < avg_ocean]) > 0 else 0.0
+        mount_avg = cont_heights[cont_heights > avg_cont].mean() if len(cont_heights[cont_heights > avg_cont]) > 0 else 0.0
+
+        print("[DEBUG] Elevation Summary:")
+        print(f"         Lowest: {min_elev:.3f}")
+        print(f"         Highest: {max_elev:.3f}")
+        print(f"         Avg Ocean Depth: {avg_ocean:.3f}")
+        print(f"         Avg Cont. Height: {avg_cont:.3f}")
+        print(f"         Avg Ocean Trench: {trench_avg:.3f}")
+        print(f"         Avg Cont. Mountain: {mount_avg:.3f}")
 
     return face_elevations, craton_faces, motion_vectors
 
 
 # --- Helper Functions ---
 
-def seed_cratons(total_faces, count, rng):
+def seed_cratons_with_types(total_faces, count, rng):
     """
-    Selects `count` random face indices to act as tectonic plate seeds (cratons).
+    Seeds cratons on random faces and assigns each one a tectonic type.
+
+    This replaces the separate steps of seeding cratons and assigning plate types.
+    Each seed is chosen randomly and assigned as 'continental' or 'oceanic'
+    based on the configured oceanic_craton_fraction.
+
+    Args:
+        total_faces (int): Number of mesh faces on the planet.
+        count (int): Number of cratons to seed.
+        rng (np.random.Generator): Random number generator.
+
+    Returns:
+        tuple:
+            - List[int]: Craton seed face indices.
+            - Dict[int, str]: Mapping from seed index to 'continental' or 'oceanic'.
     """
     if config.debug_mode:
-        print("[DEBUG] Seeding cratons...")
+        print("[DEBUG] Seeding cratons and assigning plate types...")
 
-    return rng.choice(total_faces, size=count, replace=False)
+    oceanic = 0
+    continental = 0
 
-
-def assign_plate_types(craton_seeds, rng):
-    """
-    Assigns each craton (seed) as 'oceanic' or 'continental' up front
-    based on config.oceanic_craton_fraction.
-    Returns a dict {seed_face: 'oceanic'|'continental'}
-    """
-    if config.debug_mode:
-        print("[DEBUG] Assigning plate types...")
-        oceanic = 0
-        continental = 0
-
+    craton_seeds = rng.choice(total_faces, size=count, replace=False)
     plate_types = {}
+
     for seed in craton_seeds:
         if rng.random() < config.oceanic_craton_fraction:
             plate_types[seed] = "oceanic"
@@ -86,17 +118,30 @@ def assign_plate_types(craton_seeds, rng):
             plate_types[seed] = "continental"
             if config.debug_mode:
                 continental += 1
+
     if config.debug_mode:
         print(f"[DEBUG] Plate types assigned: {continental} continental, {oceanic} oceanic")
 
-    return plate_types
+    return craton_seeds.tolist(), plate_types
 
 
 def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
     """
-    Grows each craton outward using BFS from its seed face, assigning all reachable faces.
-    Sets the base elevation based on craton type during assignment.
-    Returns a list: assigned[face_index] = craton_id
+    Expands each craton from its seed using breadth-first search.
+
+    Assigns all reachable faces to the same craton ID.
+    Also sets an initial base elevation on each face during growth,
+    depending on whether the craton is oceanic or continental.
+
+    Args:
+        faces (list[tuple[int]]): Triangle face definitions.
+        craton_seeds (list[int]): Seed face indices.
+        adjacency (dict[int, list[int]]): Neighbor relationships between faces.
+        plate_types (dict[int, str]): Mapping of craton seed to plate type.
+        face_elevations (list[float]): Elevation array to update.
+
+    Returns:
+        list[int]: Craton ID assigned to each face (same as seed ID).
     """
     if config.debug_mode:
         print("[DEBUG] Growing cratons...")
@@ -130,8 +175,16 @@ def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
 
 def assign_motion_vectors(craton_ids, rng):
     """
-    Assigns a normalized 3D motion vector to each craton ID.
-    Returns a dictionary: {craton_id: vector (np.array)}
+    Generates and normalizes a random 3D motion vector for each craton.
+
+    Motion vectors determine tectonic interaction types (e.g. converging/diverging).
+
+    Args:
+        craton_ids (list[int]): List of craton identifiers.
+        rng (np.random.Generator): Random number generator.
+
+    Returns:
+        dict[int, np.ndarray]: Mapping from craton ID to normalized 3D vector.
     """
     if config.debug_mode:
         print("[DEBUG] Assigning motion vectors...")
@@ -150,14 +203,28 @@ def assign_motion_vectors(craton_ids, rng):
 
 def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vectors, face_elevations, rng, plate_types):
     """
-    Applies tectonic elevation changes at boundaries,
-    using plate type logic for more realistic mountains/trenches.
+    Modifies elevation based on tectonic boundary interactions.
+
+    Detects and classifies boundaries between adjacent cratons
+    (converging, diverging, or transform) and applies
+    corresponding elevation adjustments based on plate types.
+
+    Args:
+        vertices (np.ndarray): Vertex coordinates.
+        faces (list[tuple[int]]): Triangle face definitions.
+        adjacency (dict[int, list[int]]): Face adjacency map.
+        assigned (list[int]): Craton ID for each face.
+        motion_vectors (dict[int, np.ndarray]): 3D vector per craton.
+        face_elevations (list[float]): Elevation values to modify in-place.
+        rng (np.random.Generator): Random number generator.
+        plate_types (dict[int, str]): Mapping of craton IDs to 'continental' or 'oceanic'.
     """
     if config.debug_mode:
         print("[DEBUG] Applying boundary interactions...")
 
     threshold = 0.1
     debug_count = 0
+    debug_count_display_limit = 10
 
     # Converging lifts
     cont_cont_converge = config.height_amplitude * 0.8                  # big mountains for continental collision
@@ -186,8 +253,8 @@ def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vec
             ptype_b = plate_types.get(plate_b, "continental")
 
             # Face centers
-            pos_a = np.mean(vertices[faces[face_idx]], axis=0)
-            pos_b = np.mean(vertices[faces[neighbor_idx]], axis=0)
+            pos_a = np.mean(vertices[np.array(faces[face_idx])], axis=0)
+            pos_b = np.mean(vertices[np.array(faces[neighbor_idx])], axis=0)
             direction = pos_b - pos_a
             norm_dir = np.linalg.norm(direction)
             if norm_dir == 0:
@@ -255,7 +322,6 @@ def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vec
                 face_elevations[face_idx] += noise
                 face_elevations[neighbor_idx] += noise
 
-            debug_count_display_limit = 10
             if config.debug_mode and debug_count < debug_count_display_limit:
                 print(f"[DEBUG] Face {face_idx}↔{neighbor_idx}: {interaction.upper()} ({ptype_a} vs {ptype_b}) Δv•dir = {relative_motion:.3f}")
                 debug_count += 1
@@ -267,9 +333,16 @@ def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vec
 
 def smooth_boundaries(faces, adjacency, face_elevations):
     """
-    Spreads elevation outward from boundary zones using layered smoothing.
-    This version avoids spreading from very high elevation (mountain) peaks,
-    to preserve sharp summits while allowing wide foothill regions.
+    Smooths elevation transitions at tectonic boundaries.
+
+    Uses a layered propagation algorithm to blend sharp elevation
+    differences outward into neighboring regions. Avoids altering
+    extreme peaks or trenches to preserve geological detail.
+
+    Args:
+        faces (list[tuple[int]]): Triangle face definitions.
+        adjacency (dict[int, list[int]]): Face adjacency map.
+        face_elevations (list[float]): Elevation values to smooth in-place.
     """
     if config.debug_mode:
         print("[DEBUG] Smoothing elevation boundaries...")
@@ -306,9 +379,21 @@ def smooth_boundaries(faces, adjacency, face_elevations):
 
 def slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations, adjacency):
     """
-    Applies elevation slope from the center of each craton outward.
-    Oceanic plates slope up toward the edge; continental plates slope down.
-    Also factors in nearby mountain/trench elevation to adjust slope locally.
+    Applies an inward-to-outward elevation gradient within each craton.
+
+    Continental plates slope down toward their edges (mountain-to-plain).
+    Oceanic plates slope up toward their edges (deep ocean to shallows).
+
+    Nearby mountains and trenches modify the base slope slightly,
+    adding variation near strong features.
+
+    Args:
+        vertices (np.ndarray): Vertex positions.
+        faces (list[tuple[int]]): Face definitions.
+        assigned (list[int]): Craton ID assigned per face.
+        plate_types (dict[int, str]): Craton type per seed ID.
+        face_elevations (list[float]): Elevation values to modify in-place.
+        adjacency (dict[int, list[int]]): Face adjacency map.
     """
     if config.debug_mode:
         print("[DEBUG] Slope-craton-center elevation pass...")
@@ -322,11 +407,11 @@ def slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations
     for craton_id, face_indices in craton_faces.items():
         if not face_indices:
             continue
-        centers = [np.mean(vertices[faces[i]], axis=0) for i in face_indices]
+        centers = [np.mean(vertices[np.array(faces[i])], axis=0) for i in face_indices]
         plate_center = np.mean(centers, axis=0)
 
         for i in face_indices:
-            face_center = np.mean(vertices[faces[i]], axis=0)
+            face_center = np.mean(vertices[np.array(faces[i])], axis=0)
             dist = np.linalg.norm(plate_center - face_center)
             dist_weight = dist / config.radius
 
