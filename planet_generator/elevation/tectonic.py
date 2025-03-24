@@ -31,12 +31,40 @@ def compute_tectonic_elevation(vertices, faces, adjacency):
     """
     if config.debug_mode:
         print("[DEBUG] Starting tectonic elevation computation...")
+        print("[DEBUG] Checking for faces with no neighbors...")
+        for fidx, nbrs in adjacency.items():
+            if not nbrs:
+                print(f"Face {fidx} has NO neighbors!")
+
+        # DEBUG: Check for disconnected regions across the entire planet mesh
+        print("[DEBUG] Checking for disconnected regions across the entire planet mesh...")
+        visited_global = set()
+        components = []
+        total_faces = len(faces)
+        for face_idx in range(total_faces):
+            if face_idx not in visited_global:
+                # BFS from face_idx to find all connected faces
+                queue = deque([face_idx])
+                visited_local = set([face_idx])
+                visited_global.add(face_idx)
+
+                while queue:
+                    current = queue.popleft()
+                    for neigh in adjacency[current]:
+                        if neigh not in visited_global:
+                            visited_global.add(neigh)
+                            visited_local.add(neigh)
+                            queue.append(neigh)
+                components.append(visited_local)
+        print(f"[DEBUG] Found {len(components)} disconnected region(s).")
+        for i, comp in enumerate(components):
+            print(f"        Region {i+1} has {len(comp)} faces.")
 
     vertices: np.ndarray = np.array(vertices, dtype=np.float64)
     total_faces = len(faces)
     surface_area_km2 = 4 * math.pi * config.radius**2
     estimated_craton_count = config.craton_count or max(8, int(surface_area_km2 / 8e7))
-    rng = np.random.default_rng(config.qi_pool_seed)
+    rng = np.random.default_rng()  # Map generation seed, set to a static number to get the same map repeatedly.
 
     # Seed the craton starting spots on random faces, and then assign face types (Continental or Oceanic).
     craton_seeds, plate_types = seed_cratons_with_types(total_faces, estimated_craton_count, rng)
@@ -47,6 +75,7 @@ def compute_tectonic_elevation(vertices, faces, adjacency):
     if config.debug_mode:
         unassigned_count = sum(1 for cid in craton_faces if cid == -1)
         print(f"[DEBUG] Unassigned faces after growth: {unassigned_count}")
+
 
     # Assign motion vectors, calculate boundary interactions, smooth the boundaries, and slope the cratons
     motion_vectors = assign_motion_vectors(list(plate_types.keys()), rng)
@@ -127,7 +156,7 @@ def seed_cratons_with_types(total_faces, count, rng):
 
 def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
     """
-    Expands each craton from its seed using breadth-first search.
+    Expands each craton from its seed using breadth-first search (BFS).
 
     Assigns all reachable faces to the same craton ID.
     Also sets an initial base elevation on each face during growth,
@@ -169,6 +198,22 @@ def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
                     # Propagate base elevation
                     base_elevation = -config.height_amplitude * 0.4 if plate_types[craton_id] == "oceanic" else config.height_amplitude * 0.1
                     face_elevations[neighbor] = base_elevation
+
+    if config.debug_mode:
+        unassigned_indices = [i for i, c in enumerate(assigned_craton_faces) if c == -1]
+        print(f"[DEBUG] Unassigned face count: {len(unassigned_indices)}")
+        if unassigned_indices:
+            some_face = unassigned_indices[0]
+            print(f"[DEBUG] Example unassigned face: {some_face}")
+            print(f"[DEBUG] Its neighbors: {adjacency[some_face]}")
+            for nbr in adjacency[some_face]:
+                print(f"    neighbor={nbr}, assigned_craton_faces[{nbr}]={assigned_craton_faces[nbr]}")
+
+    if config.debug_mode:
+        some_face = 0
+        for nbr in adjacency[some_face]:
+            if some_face not in adjacency[nbr]:
+                print(f"[DEBUG] Asymmetric adjacency: Face {nbr} doesn't list {some_face} as neighbor!")
 
     return assigned_craton_faces
 
