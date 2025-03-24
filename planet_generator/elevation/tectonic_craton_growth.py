@@ -4,10 +4,47 @@ from planet_generator import config
 from collections import deque
 
 
-# TODO: Change the recompute of base_elevation for every propagated neighbor from being inside the loop
-#       to a precompute outside the loop that runs once and stores the results in a dict.
-# TODO: some_face = 0 assumes that face 0 exists. Change it to sample a face from craton_seeds instead.
 def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
+    """
+    Orchestrates craton growth by selecting the configured method.
+
+    Args:
+        faces (list[tuple[int]]): Triangle face definitions.
+        craton_seeds (list[int]): Seed face indices.
+        adjacency (dict[int, list[int]]): Neighbor relationships between faces.
+        plate_types (dict[int, str]): Mapping of craton seed to plate type.
+        face_elevations (list[float]): Elevation array to update.
+
+    Returns:
+        list[int]: Craton ID assigned to each face.
+    """
+    base_elevations = compute_base_elevations(craton_seeds, plate_types)
+
+    method = config.craton_growth_method.lower()
+    if method == "bfs":
+        return grow_cratons_bfs(faces, craton_seeds, adjacency, face_elevations, base_elevations)
+    else:
+        raise ValueError(f"Unsupported craton growth method: '{method}'")
+
+
+def compute_base_elevations(craton_seeds, plate_types):
+    """
+    Computes the base elevation for each craton seed based on plate type.
+
+    Args:
+        craton_seeds (list[int]): List of seed face indices.
+        plate_types (dict[int, str]): Mapping from craton seed to plate type.
+
+    Returns:
+        dict[int, float]: Mapping from craton seed to its base elevation.
+    """
+    return {
+        cid: (-config.height_amplitude * 0.4 if plate_types[cid] == "oceanic" else config.height_amplitude * 0.1)
+        for cid in craton_seeds
+    }
+
+
+def grow_cratons_bfs(faces, craton_seeds, adjacency, face_elevations, base_elevations):
     """
     Expands each craton from its seed using breadth-first search (BFS).
 
@@ -19,22 +56,22 @@ def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
         faces (list[tuple[int]]): Triangle face definitions.
         craton_seeds (list[int]): Seed face indices.
         adjacency (dict[int, list[int]]): Neighbor relationships between faces.
-        plate_types (dict[int, str]): Mapping of craton seed to plate type.
         face_elevations (list[float]): Elevation array to update.
+        base_elevations (dict[int, float]): Elevation base values per craton.
 
     Returns:
         list[int]: Craton ID assigned to each face (same as seed ID).
     """
     if config.debug_mode:
-        print("[DEBUG] Growing cratons...")
+        print("[DEBUG] Growing cratons using BFS (breadth-first search)...")
 
     total_faces = len(faces)
     assigned_craton_faces = [-1] * total_faces
     queues = {seed: deque([seed]) for seed in craton_seeds}
+
     for seed in craton_seeds:
         assigned_craton_faces[seed] = seed
-        base_elevation = -config.height_amplitude * 0.3 if plate_types[seed] == "oceanic" else config.height_amplitude * 0.1
-        face_elevations[seed] = base_elevation
+        face_elevations[seed] = base_elevations[seed]
 
     active = True
     while active:
@@ -48,9 +85,7 @@ def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
                     assigned_craton_faces[neighbor] = craton_id
                     queue.append(neighbor)
                     active = True
-                    # Propagate base elevation
-                    base_elevation = -config.height_amplitude * 0.4 if plate_types[craton_id] == "oceanic" else config.height_amplitude * 0.1
-                    face_elevations[neighbor] = base_elevation
+                    face_elevations[neighbor] = base_elevations[craton_id]
 
     if config.debug_mode:
         unassigned_indices = [i for i, c in enumerate(assigned_craton_faces) if c == -1]
@@ -63,9 +98,10 @@ def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
                 print(f"    neighbor={nbr}, assigned_craton_faces[{nbr}]={assigned_craton_faces[nbr]}")
 
     if config.debug_mode:
-        some_face = 0
-        for nbr in adjacency[some_face]:
-            if some_face not in adjacency[nbr]:
+        # Pick a sample face from craton seeds for symmetric adjacency check
+        some_face = craton_seeds[0] if craton_seeds else 0
+        for nbr in adjacency.get(some_face, []):
+            if some_face not in adjacency.get(nbr, []):
                 print(f"[DEBUG] Asymmetric adjacency: Face {nbr} doesn't list {some_face} as neighbor!")
 
     return assigned_craton_faces
