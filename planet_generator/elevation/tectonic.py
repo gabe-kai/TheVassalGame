@@ -122,7 +122,7 @@ def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
                     queue.append(neighbor)
                     active = True
                     # Propagate base elevation
-                    base_elevation = -config.height_amplitude * 0.3 if plate_types[craton_id] == "oceanic" else config.height_amplitude * 0.1
+                    base_elevation = -config.height_amplitude * 0.4 if plate_types[craton_id] == "oceanic" else config.height_amplitude * 0.1
                     face_elevations[neighbor] = base_elevation
 
     return assigned_craton_faces
@@ -159,17 +159,16 @@ def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vec
     threshold = 0.1
     debug_count = 0
 
-    # Example constants (tweak as desired)
     # Converging lifts
-    cont_cont_converge = config.height_amplitude * 0.8       # big mountains for continental collision
-    cont_ocean_converge_cont_side = config.height_amplitude  # tall coastal mountains
-    cont_ocean_converge_ocean_side = -config.height_amplitude * 0.8  # trench
-    ocean_ocean_converge = config.height_amplitude * 0.3      # island arcs
+    cont_cont_converge = config.height_amplitude * 0.8                  # big mountains for continental collision
+    cont_ocean_converge_cont_side = config.height_amplitude             # tall coastal mountains
+    cont_ocean_converge_ocean_side = -config.height_amplitude * 0.8     # trench
+    ocean_ocean_converge_ratio = 0.06                                   # relative to ocean base height
 
     # Diverging lowers or forms ridges
-    cont_cont_diverge = -config.height_amplitude * 0.2        # continental rift
-    ocean_ocean_diverge = config.height_amplitude * 0.1       # mid-ocean ridge
-    cont_ocean_diverge = -config.height_amplitude * 0.1       # mild rift near coasts
+    cont_cont_diverge = -config.height_amplitude * 0.2                  # continental rift
+    ocean_ocean_diverge = config.height_amplitude * 0.1                 # mid-ocean ridge
+    cont_ocean_diverge = -config.height_amplitude * 0.1                 # mild rift near coasts
 
     # Transform gets random fracturing
     transform_variation = config.height_amplitude * 0.05
@@ -209,40 +208,47 @@ def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vec
 
             if interaction == "converging":
                 # Each pair of plate types has custom logic
+                variation_a = rng.normal(loc=1.0, scale=0.18)
+                variation_b = rng.normal(loc=1.0, scale=0.18)
                 if ptype_a == "continental" and ptype_b == "continental":
                     # Big collision mountains
-                    face_elevations[face_idx] += cont_cont_converge
-                    face_elevations[neighbor_idx] += cont_cont_converge
+                    face_elevations[face_idx] += cont_cont_converge * variation_a
+                    face_elevations[neighbor_idx] += cont_cont_converge * variation_b
 
                 elif ptype_a == "continental" and ptype_b == "oceanic":
                     # Mountain on continental side, trench on ocean side
-                    face_elevations[face_idx] += cont_ocean_converge_cont_side
-                    face_elevations[neighbor_idx] += cont_ocean_converge_ocean_side
+                    face_elevations[face_idx] += cont_ocean_converge_cont_side * variation_a
+                    face_elevations[neighbor_idx] += cont_ocean_converge_ocean_side * variation_b
 
                 elif ptype_a == "oceanic" and ptype_b == "continental":
                     # Trench on plate_a, mountain on plate_b
-                    face_elevations[face_idx] += cont_ocean_converge_ocean_side
-                    face_elevations[neighbor_idx] += cont_ocean_converge_cont_side
+                    face_elevations[face_idx] += cont_ocean_converge_ocean_side * variation_a
+                    face_elevations[neighbor_idx] += cont_ocean_converge_cont_side * variation_b
 
                 else:  # oceanic-oceanic
-                    face_elevations[face_idx] += ocean_ocean_converge
-                    face_elevations[neighbor_idx] += ocean_ocean_converge
+                    base_a = face_elevations[face_idx]
+                    base_b = face_elevations[neighbor_idx]
+                    rise = config.height_amplitude * ocean_ocean_converge_ratio
+                    face_elevations[face_idx] += (rise * (1 - abs(base_a) / config.height_amplitude)) * variation_a
+                    face_elevations[neighbor_idx] += (rise * (1 - abs(base_b) / config.height_amplitude)) * variation_b
 
             elif interaction == "diverging":
                 # Similar logic for plate combos
+                variation_a = rng.normal(loc=1.0, scale=0.18)
+                variation_b = rng.normal(loc=1.0, scale=0.18)
                 if ptype_a == "continental" and ptype_b == "continental":
-                    face_elevations[face_idx] += cont_cont_diverge
-                    face_elevations[neighbor_idx] += cont_cont_diverge
+                    face_elevations[face_idx] += cont_cont_diverge * variation_a
+                    face_elevations[neighbor_idx] += cont_cont_diverge * variation_b
 
                 elif ptype_a == "oceanic" and ptype_b == "oceanic":
                     # mid-ocean ridge
-                    face_elevations[face_idx] += ocean_ocean_diverge
-                    face_elevations[neighbor_idx] += ocean_ocean_diverge
+                    face_elevations[face_idx] += ocean_ocean_diverge * variation_a
+                    face_elevations[neighbor_idx] += ocean_ocean_diverge * variation_b
 
                 else:
                     # oceanic <-> continental
-                    face_elevations[face_idx] += cont_ocean_diverge
-                    face_elevations[neighbor_idx] += cont_ocean_diverge
+                    face_elevations[face_idx] += cont_ocean_diverge * variation_a
+                    face_elevations[neighbor_idx] += cont_ocean_diverge * variation_b
 
             else:  # transform
                 noise = rng.uniform(-transform_variation, transform_variation)
