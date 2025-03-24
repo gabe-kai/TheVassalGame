@@ -1,10 +1,12 @@
 # planet_generator/elevation/tectonic_craton_growth.py
 
-from planet_generator import config
+import numpy as np
 from collections import deque
+from noise import snoise3  # Simplex noise for smooth spatial distortion
+from planet_generator import config
 
 
-def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
+def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations, vertices):
     """
     Orchestrates craton growth by selecting the configured method.
 
@@ -14,6 +16,7 @@ def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
         adjacency (dict[int, list[int]]): Neighbor relationships between faces.
         plate_types (dict[int, str]): Mapping of craton seed to plate type.
         face_elevations (list[float]): Elevation array to update.
+        vertices (np.ndarray): Array of vertex coordinates.
 
     Returns:
         list[int]: Craton ID assigned to each face.
@@ -23,6 +26,8 @@ def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations):
     method = config.craton_growth_method.lower()
     if method == "bfs":
         return grow_cratons_bfs(faces, craton_seeds, adjacency, face_elevations, base_elevations)
+    elif method == "voronoi":
+        return grow_cratons_voronoi(faces, craton_seeds, face_elevations, base_elevations, vertices)
     else:
         raise ValueError(f"Unsupported craton growth method: '{method}'")
 
@@ -103,5 +108,50 @@ def grow_cratons_bfs(faces, craton_seeds, adjacency, face_elevations, base_eleva
         for nbr in adjacency.get(some_face, []):
             if some_face not in adjacency.get(nbr, []):
                 print(f"[DEBUG] Asymmetric adjacency: Face {nbr} doesn't list {some_face} as neighbor!")
+
+    return assigned_craton_faces
+
+
+def grow_cratons_voronoi(faces, craton_seeds, face_elevations, base_elevations, vertices):
+    """
+    Assigns each face to the nearest craton seed using geodesic Voronoi partitioning.
+
+    This method avoids BFS and donut-hole issues by assigning faces based on
+    angular distance to each seed (dot product of normalized centroids).
+
+    Args:
+        faces (list[tuple[int]]): Triangle face definitions.
+        craton_seeds (list[int]): Seed face indices.
+        face_elevations (list[float]): Elevation array to update.
+        base_elevations (dict[int, float]): Elevation base values per craton.
+        vertices (np.ndarray): Array of vertex coordinates.
+
+    Returns:
+        list[int]: Craton ID assigned to each face.
+    """
+    if config.debug_mode:
+        print("[DEBUG] Growing cratons using Voronoi method with simplex distortion...")
+
+    face_centers = np.mean(vertices[np.array(faces)], axis=1)
+    face_centers /= np.linalg.norm(face_centers, axis=1, keepdims=True)
+
+    seed_centers = face_centers[craton_seeds]  # shape (num_seeds, 3)
+    dot_products = np.dot(face_centers, seed_centers.T)  # (num_faces, num_seeds)
+
+    # Coherent simplex noise-based distortion per (face, seed) pair
+    distortion = np.zeros_like(dot_products)
+    for seed_idx, seed_center in enumerate(seed_centers):
+        dx, dy, dz = seed_center * 2.0  # Frequency multiplier for noise
+        for face_idx, (x, y, z) in enumerate(face_centers):
+            distortion[face_idx, seed_idx] = snoise3(x + dx, y + dy, z + dz)
+
+    # Blend distorted score into dot products
+    noisy_scores = dot_products + distortion * 0.08
+
+    closest_indices = np.argmax(noisy_scores, axis=1)
+    assigned_craton_faces = [craton_seeds[i] for i in closest_indices]
+
+    for i, craton_id in enumerate(assigned_craton_faces):
+        face_elevations[i] = base_elevations[craton_id]
 
     return assigned_craton_faces

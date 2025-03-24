@@ -75,7 +75,7 @@ def compute_tectonic_elevation(vertices, faces, adjacency):
 
     # Initialize elevations and then grow the cratons until they fill the map
     face_elevations = [0.0 for _ in faces]
-    craton_faces = grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations)
+    craton_faces = grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations, vertices)
     if config.debug_mode:
         unassigned_count = sum(1 for cid in craton_faces if cid == -1)
         print(f"[DEBUG] Unassigned faces after growth: {unassigned_count}")
