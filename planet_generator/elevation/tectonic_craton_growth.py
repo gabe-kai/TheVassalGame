@@ -36,7 +36,7 @@ def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations, v
 def compute_base_elevations(craton_seeds, plate_types):
     height_amplitude = get_height_amplitude()
     return {
-        cid: (-height_amplitude * 0.4 if plate_types[cid] == "oceanic" else height_amplitude * 0.1)
+        cid: (height_amplitude * -0.25 if plate_types[cid] == "oceanic" else height_amplitude * 0.2)
         for cid in craton_seeds
     }
 

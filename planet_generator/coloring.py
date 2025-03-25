@@ -25,9 +25,11 @@ def apply_face_coloring(vertices, faces, face_elevations):
     sea_level = config.sea_level
     height_amplitude = get_height_amplitude()
 
-    grassline_max = sea_level + height_amplitude * 0.29       # upper bound of grasslands
-    foothill_max = sea_level + height_amplitude * 0.42        # upper bound of foothills
-    mountain_max = sea_level + height_amplitude * 0.58        # upper bound of rocky mountains
+    lowland_max = sea_level + height_amplitude * config.plains_zone_threshold
+    plains_max = sea_level + height_amplitude * config.foothills_zone_threshold
+    foothill_max = sea_level + height_amplitude * config.mountain_zone_threshold
+    mountain_max = sea_level + height_amplitude * config.mountain_peak_threshold
+    trench_min = sea_level - height_amplitude * config.trench_zone_threshold
 
     face_colors = []
 
@@ -36,25 +38,35 @@ def apply_face_coloring(vertices, faces, face_elevations):
         latitude = get_latitude(center)
         elevation = face_elevations[i]
 
-        if elevation < sea_level:
-            # Ocean depth: dark blue at deepest, lighter blue near sea level
-            norm = abs(elevation) / abs(min_elev) if min_elev != 0 else 0
-            base_color = np.array([0.0, 0.05 + 0.2 * (1 - norm), 0.3 + 0.5 * (1 - norm)])
+        if elevation < trench_min:
+            # Ocean trench: black to dark blue
+            norm = abs(elevation - min_elev) / abs(trench_min - min_elev)
+            base_color = np.array([0.0, 0.0, 0.1 + 0.2 * norm])
 
-        elif elevation <= grassline_max:
-            # Grasslands: light green to yellow-green
-            norm = (elevation - sea_level) / (grassline_max - sea_level)
-            base_color = np.array([0.3 * norm, 0.6 + 0.3 * norm, 0.2 * (1 - norm)])
+        elif elevation < sea_level:
+            # Regular ocean depth: dark blue to medium blue
+            norm = abs(elevation - trench_min) / abs(sea_level - trench_min)
+            base_color = np.array([0.0, 0.1 * norm, 0.3 + 0.4 * norm])
+
+        elif elevation <= lowland_max:
+            # Lowlands: sandy brown to swampy yellow-green
+            norm = (elevation - sea_level) / (lowland_max - sea_level)
+            base_color = np.array([0.4, 0.3, 0.15]) * (1 - norm) + np.array([0.6, 0.75, 0.2]) * norm
+
+        elif elevation <= plains_max:
+            # Plains: light green to dark pine green
+            norm = (elevation - lowland_max) / (plains_max - lowland_max)
+            base_color = np.array([0.5, 0.75, 0.3]) * (1 - norm) + np.array([0.1, 0.4, 0.1]) * norm
 
         elif elevation <= foothill_max:
-            # Foothills: yellow-green to brown-gray
-            norm = (elevation - grassline_max) / (foothill_max - grassline_max)
-            base_color = np.array([0.6 - 0.2 * norm, 0.8 - 0.6 * norm, 0.3 * norm])
+            # Foothills: earthy-brown to gray-brown
+            norm = (elevation - plains_max) / (foothill_max - plains_max)
+            base_color = np.array([0.5, 0.4, 0.2]) * (1 - norm) + np.array([0.45, 0.4, 0.35]) * norm
 
         elif elevation <= mountain_max:
-            # Mountains: brown-gray to light gray
+            # Mountains: gray-brown to light gray
             norm = (elevation - foothill_max) / (mountain_max - foothill_max)
-            base_color = np.array([0.6, 0.6, 0.6]) * (1 - norm) + np.array([0.85, 0.85, 0.85]) * norm
+            base_color = np.array([0.45, 0.4, 0.35]) * (1 - norm) + np.array([0.85, 0.85, 0.85]) * norm
 
         else:
             # Snow-capped peaks: light gray to white

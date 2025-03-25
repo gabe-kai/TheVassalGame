@@ -7,7 +7,7 @@ subdivision_depth = 6           # Icosphere detail level. Integer >= 0. Higher =
 # Noise & elevation
 apply_elevation = True
 elevation_method = "tectonic"   # Options: "perlin" or "tectonic"
-height_amplitude_ratio = 0.05   # Max elevation = ±5% of planet radius
+height_amplitude_ratio = 0.01   # Max elevation = ±5% of planet radius (Earth = 0.0017 - 0.0025)
 sea_level = 0.0                 # Base elevation of sea level
 
 # Perlin parameters
@@ -25,6 +25,13 @@ craton_reference_radius = 6371  # Earth-like baseline
 craton_min_count = 7            # Keep the number odd to prevent quadrant or evenly-split halves
 oceanic_craton_fraction = 0.6   # At 0.5, half of cratons will be ocean plates
 craton_growth_method = "voronoi"    # Choose "bfs" or "voronoi"
+
+# Terrain classification thresholds (as fractions of height_amplitude)
+plains_zone_threshold = 0.10     # Anything above this is considered plains, anything below is lowlands
+foothills_zone_threshold = 0.29  # Anything above this is considered hills
+mountain_zone_threshold = 0.42   # Anything above this is considered mountainous
+mountain_peak_threshold = 0.58   # Anything above this is considered mountain peaks
+trench_zone_threshold = 0.40     # Anything below this is considered trench
 
 # Ocean mesh & resolution (for export and plot)
 generate_ocean = False          # Toggle ocean mesh (as a separate object) generation and export

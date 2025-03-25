@@ -1,6 +1,5 @@
 # planet_generator/elevation/tectonic.py
 
-import math
 import numpy as np
 from collections import deque
 from planet_generator import config
@@ -9,7 +8,7 @@ from .tectonic_craton_seeding import seed_cratons_with_types
 from .tectonic_craton_growth import grow_cratons
 from .tectonic_boundary_interactions import assign_motion_vectors, apply_boundary_interactions, smooth_boundaries
 from .tectonic_craton_sloping import slope_craton_centers, normalize_elevations
-from .utils import estimate_craton_count
+from .utils import estimate_craton_count, get_height_amplitude
 
 
 def compute_tectonic_elevation(vertices, faces, face_centers, adjacency):
@@ -87,29 +86,41 @@ def compute_tectonic_elevation(vertices, faces, face_centers, adjacency):
     apply_boundary_interactions(face_centers, adjacency, craton_faces, motion_vectors, face_elevations, rng, plate_types)
     smooth_boundaries(faces, adjacency, face_elevations)
     slope_craton_centers(face_centers, craton_faces, plate_types, face_elevations, adjacency)
-    face_elevations[:] = normalize_elevations(face_elevations)
+    # face_elevations[:] = normalize_elevations(face_elevations)
 
     if config.debug_mode:
         elevations = np.array(face_elevations)
         min_elev = elevations.min()
         max_elev = elevations.max()
+
+        sea_level = config.sea_level
+        height_amplitude = get_height_amplitude()
+        mountain_thresh = sea_level + height_amplitude * config.mountain_zone_threshold
+        trench_thresh = sea_level - height_amplitude * config.trench_zone_threshold
+
         ocean_indices = [i for i, cid in enumerate(craton_faces) if plate_types.get(cid) == "oceanic"]
         cont_indices = [i for i, cid in enumerate(craton_faces) if plate_types.get(cid) == "continental"]
 
-        ocean_depths = elevations[ocean_indices] if ocean_indices else np.array([])
-        cont_heights = elevations[cont_indices] if cont_indices else np.array([])
+        # Exclude trenches and mountains from average calculations
+        ocean_main = [i for i in ocean_indices if elevations[i] >= trench_thresh]
+        cont_main = [i for i in cont_indices if elevations[i] <= mountain_thresh]
+
+        ocean_depths = elevations[ocean_main] if ocean_main else np.array([])
+        cont_heights = elevations[cont_main] if cont_main else np.array([])
 
         avg_ocean = ocean_depths.mean() if len(ocean_depths) > 0 else 0.0
         avg_cont = cont_heights.mean() if len(cont_heights) > 0 else 0.0
-        trench_avg = ocean_depths[ocean_depths < avg_ocean].mean() if len(ocean_depths[ocean_depths < avg_ocean]) > 0 else 0.0
-        mount_avg = cont_heights[cont_heights > avg_cont].mean() if len(cont_heights[cont_heights > avg_cont]) > 0 else 0.0
+
+        trench_avg = elevations[
+            [i for i in ocean_indices if elevations[i] < avg_ocean]].mean() if ocean_indices else 0.0
+        mount_avg = elevations[[i for i in cont_indices if elevations[i] > avg_cont]].mean() if cont_indices else 0.0
 
         print("[DEBUG] Elevation Summary:")
-        print(f"         Lowest: {min_elev:.3f}")
-        print(f"         Highest: {max_elev:.3f}")
-        print(f"         Avg Ocean Depth: {avg_ocean:.3f}")
-        print(f"         Avg Cont. Height: {avg_cont:.3f}")
-        print(f"         Avg Ocean Trench: {trench_avg:.3f}")
-        print(f"         Avg Cont. Mountain: {mount_avg:.3f}")
+        print(f"         Lowest: {min_elev:.3f}km")
+        print(f"         Highest: {max_elev:.3f}km")
+        print(f"         Avg Ocean Depth: {avg_ocean:.3f}km")
+        print(f"         Avg Cont. Height: {avg_cont:.3f}km")
+        print(f"         Avg Ocean Trench: {trench_avg:.3f}km")
+        print(f"         Avg Cont. Mountain: {mount_avg:.3f}km")
 
     return face_elevations, craton_faces, motion_vectors

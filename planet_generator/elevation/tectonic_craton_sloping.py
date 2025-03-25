@@ -100,7 +100,7 @@ def normalize_elevations(face_elevations):
 
     # Normalize to range [-1, 1], centered at 0, then bias upward toward sea-level
     scaled = 2 * (elev_array - min_elev) / (max_elev - min_elev) - 1
-    scaled += 0.15  # bias toward raising average continental elevation
+    # scaled += 0.15  # bias toward raising average continental elevation
     scaled = np.clip(scaled, -1, 1)
     normalized = scaled * height_amplitude
 
