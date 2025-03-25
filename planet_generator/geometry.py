@@ -78,3 +78,17 @@ def build_adjacency(faces):
         adjacency[i] = neighbors
     return adjacency
 
+def compute_face_centers(faces, vertices):
+    """
+    Compute unit-normalized 3D center for each face.
+
+    Args:
+        faces (list[tuple[int]]): List of face vertex indices.
+        vertices (np.ndarray): Array of 3D vertex positions.
+
+    Returns:
+        np.ndarray: Array of shape (num_faces, 3) with normalized face center coordinates.
+    """
+    face_centers = np.mean(vertices[np.array(faces)], axis=1)
+    face_centers /= np.linalg.norm(face_centers, axis=1, keepdims=True)
+    return face_centers

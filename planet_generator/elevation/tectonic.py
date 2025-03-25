@@ -10,7 +10,7 @@ from .tectonic_craton_growth import grow_cratons
 from .tectonic_boundary_interactions import assign_motion_vectors, apply_boundary_interactions, smooth_boundaries
 from .tectonic_craton_sloping import slope_craton_centers
 
-def compute_tectonic_elevation(vertices, faces, adjacency):
+def compute_tectonic_elevation(vertices, faces, face_centers, adjacency):
     """
     Simulates tectonic elevation changes on a planet surface.
 
@@ -26,6 +26,7 @@ def compute_tectonic_elevation(vertices, faces, adjacency):
     Args:
         vertices (np.ndarray): Array of shape (N, 3) with vertex coordinates.
         faces (list[tuple[int]]): List of face index groups (triplets of vertex indices).
+        face_centers (np.ndarray): Precomputed 3D face centers (unit vectors).
         adjacency (dict[int, list[int]]): Map of face index to neighboring face indices.
 
     Returns:
@@ -82,7 +83,7 @@ def compute_tectonic_elevation(vertices, faces, adjacency):
 
     # Assign motion vectors, calculate boundary interactions, smooth the boundaries, and slope the cratons
     motion_vectors = assign_motion_vectors(list(plate_types.keys()), rng)
-    apply_boundary_interactions(vertices, faces, adjacency, craton_faces, motion_vectors, face_elevations, rng, plate_types)
+    apply_boundary_interactions(face_centers, adjacency, craton_faces, motion_vectors, face_elevations, rng, plate_types)
     smooth_boundaries(faces, adjacency, face_elevations)
     slope_craton_centers(vertices, faces, craton_faces, plate_types, face_elevations, adjacency)
 

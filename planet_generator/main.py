@@ -1,7 +1,7 @@
 # planet_generator/main.py
 
 from planet_generator import config
-from planet_generator.geometry import generate_base_icosahedron, subdivide, build_adjacency
+from planet_generator.geometry import generate_base_icosahedron, subdivide, build_adjacency, compute_face_centers
 from planet_generator.elevation import compute_face_elevation
 from planet_generator.elevation.ocean import generate_ocean_sphere
 from planet_generator.coloring import apply_face_coloring
@@ -13,11 +13,11 @@ def main():
     vertices, faces = generate_base_icosahedron()
     vertices, faces = subdivide(vertices, faces, config.subdivision_depth)
     adjacency = build_adjacency(faces)
-
+    face_centers = compute_face_centers(faces, vertices)
 
     # Step 2: Elevation & terrain shaping
     print("[DEBUG] Starting elevation computation using method:", config.elevation_method)
-    face_elevations, assigned, motion_vectors = compute_face_elevation(vertices, faces, adjacency)
+    face_elevations, assigned, motion_vectors = compute_face_elevation(vertices, faces, face_centers, adjacency)
     print("[DEBUG] Elevation computation complete.")
 
     # Step 3: Climate & elevation coloring

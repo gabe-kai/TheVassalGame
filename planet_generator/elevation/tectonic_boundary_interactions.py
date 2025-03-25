@@ -33,8 +33,7 @@ def assign_motion_vectors(craton_ids, rng):
 
 
 # TODO: Move the threshold and decay values from being hard-coded here to user config values from config.py
-# TODO: Instead of recomputing the face centers repeatedly, precompute all face centers once and then reuse them.
-def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vectors, face_elevations, rng, plate_types):
+def apply_boundary_interactions(face_centers, adjacency, assigned, motion_vectors, face_elevations, rng, plate_types):
     """
     Modifies elevation based on tectonic boundary interactions.
 
@@ -43,8 +42,7 @@ def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vec
     corresponding elevation adjustments based on plate types.
 
     Args:
-        vertices (np.ndarray): Vertex coordinates.
-        faces (list[tuple[int]]): Triangle face definitions.
+        face_centers (np.ndarray): Precomputed 3D face centers (unit vectors).
         adjacency (dict[int, list[int]]): Face adjacency map.
         assigned (list[int]): Craton ID for each face.
         motion_vectors (dict[int, np.ndarray]): 3D vector per craton.
@@ -86,8 +84,8 @@ def apply_boundary_interactions(vertices, faces, adjacency, assigned, motion_vec
             ptype_b = plate_types.get(plate_b, "continental")
 
             # Face centers
-            pos_a = np.mean(vertices[np.array(faces[face_idx])], axis=0)
-            pos_b = np.mean(vertices[np.array(faces[neighbor_idx])], axis=0)
+            pos_a = face_centers[face_idx]
+            pos_b = face_centers[neighbor_idx]
             direction = pos_b - pos_a
             norm_dir = np.linalg.norm(direction)
             if norm_dir == 0:
