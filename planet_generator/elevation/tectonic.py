@@ -86,7 +86,7 @@ def compute_tectonic_elevation(vertices, faces, face_centers, adjacency):
     apply_boundary_interactions(face_centers, adjacency, craton_faces, motion_vectors, face_elevations, rng, plate_types)
     smooth_boundaries(faces, adjacency, face_elevations)
     slope_craton_centers(face_centers, craton_faces, plate_types, face_elevations, adjacency)
-    # face_elevations[:] = normalize_elevations(face_elevations)
+    face_elevations[:] = normalize_elevations(face_elevations)
 
     if config.debug_mode:
         elevations = np.array(face_elevations)
@@ -122,5 +122,18 @@ def compute_tectonic_elevation(vertices, faces, face_centers, adjacency):
         print(f"         Avg Cont. Height: {avg_cont:.3f}km")
         print(f"         Avg Ocean Trench: {trench_avg:.3f}km")
         print(f"         Avg Cont. Mountain: {mount_avg:.3f}km")
+
+    if config.debug_mode:
+        print("[DEBUG] Terrain Classification Thresholds (in km):")
+        print(
+            f"         Lowland/Plains Threshold:  {sea_level + height_amplitude * config.plains_zone_threshold:.3f}km")
+        print(
+            f"         Foothill Threshold:        {sea_level + height_amplitude * config.foothills_zone_threshold:.3f}km")
+        print(
+            f"         Mountain Threshold:        {sea_level + height_amplitude * config.mountain_zone_threshold:.3f}km")
+        print(
+            f"         Mountain Peak Threshold:   {sea_level + height_amplitude * config.mountain_peak_threshold:.3f}km")
+        print(
+            f"         Ocean Trench Threshold:    {sea_level - height_amplitude * config.trench_zone_threshold:.3f}km")
 
     return face_elevations, craton_faces, motion_vectors

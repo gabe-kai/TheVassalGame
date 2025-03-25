@@ -66,9 +66,9 @@ def apply_boundary_interactions(face_centers, adjacency, assigned, motion_vector
     ocean_ocean_converge_ratio = 0.02                           # relative to ocean base height
 
     # Diverging lowers or forms ridges
-    cont_cont_diverge = -height_amplitude * 0.05                 # continental rift
-    ocean_ocean_diverge = height_amplitude * 0.02                # mid-ocean ridge
-    cont_ocean_diverge = -height_amplitude * 0.025                # mild rift near coasts
+    cont_cont_diverge = -height_amplitude * 0.05                # continental rift
+    ocean_ocean_diverge = height_amplitude * 0.02               # mid-ocean ridge
+    cont_ocean_diverge = -height_amplitude * 0.025              # mild rift near coasts
 
     # Transform gets random fracturing
     transform_variation = height_amplitude * 0.01

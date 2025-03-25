@@ -1,18 +1,17 @@
 # planet_generator/elevation/tectonic_craton_sloping.py
 
 import numpy as np
+from collections import deque
 from planet_generator import config
 from .utils import get_height_amplitude
 
 
-# TODO: Change the slope method from center-to-edge to edge-based-inward gradients (which I hope will create foothill
-#       ridges).
 def slope_craton_centers(face_centers, assigned, plate_types, face_elevations, adjacency):
     """
-    Applies an inward-to-outward elevation gradient within each craton.
+    Applies an edge-inward elevation gradient within each craton.
 
-    Continental plates slope down toward their edges (mountain-to-plain).
-    Oceanic plates slope up toward their edges (deep ocean to shallows).
+    Continental plates slope upward from edges toward the interior (creating inland ridges and mountains).
+    Oceanic plates slope downward from edges toward the interior (creating deep sea basins).
 
     Nearby mountains and trenches modify the base slope slightly,
     adding variation near strong features.
@@ -28,8 +27,8 @@ def slope_craton_centers(face_centers, assigned, plate_types, face_elevations, a
         print("[DEBUG] Slope-craton-center elevation pass...")
 
     height_amplitude = get_height_amplitude()
-
     craton_faces = {}
+
     for i, cid in enumerate(assigned):
         if cid not in craton_faces:
             craton_faces[cid] = []
@@ -38,21 +37,61 @@ def slope_craton_centers(face_centers, assigned, plate_types, face_elevations, a
     for craton_id, face_indices in craton_faces.items():
         if not face_indices:
             continue
-        centers = face_centers[face_indices]
-        plate_center = np.mean(centers, axis=0)
+
+        plate_type = plate_types.get(craton_id, "continental")
+
+        # Step 1: Detect edge faces
+        edge_faces = [
+            i for i in face_indices
+            if any(assigned[n] != craton_id for n in adjacency[i])
+        ]
+
+        # Step 2: BFS from edge inward
+        distances = {i: np.inf for i in face_indices}
+        queue = deque()
+        for face in edge_faces:
+            distances[face] = 0
+            queue.append(face)
+
+        while queue:
+            current = queue.popleft()
+            for neighbor in adjacency[current]:
+                if neighbor in distances and distances[neighbor] > distances[current] + 1:
+                    distances[neighbor] = distances[current] + 1
+                    queue.append(neighbor)
+
+        max_dist = max(distances.values()) or 1
+
+        # Bias slope strength by plate size
+        face_count = len(face_indices)
+        size_scale = np.clip(1.0 / np.sqrt(face_count), 0.4, 1.0)  # Smaller plates = larger value
+
+        # Seed RNG with craton ID for consistent randomness per plate
+        rng = np.random.default_rng(craton_id)
+        slope_strength = rng.uniform(0.05, 0.15) * size_scale  # variability for more natural shapes
 
         for i in face_indices:
-            face_center = face_centers[i]
-            dist = np.linalg.norm(plate_center - face_center)
-            dist_weight = dist / config.radius
+            # Nonlinear falloff: sharper slope at edge, smoother center
+            raw_weight = 1.0 - (distances[i] / max_dist)
+            dist_weight = raw_weight ** 2
 
-            plate_type = plate_types.get(craton_id, "continental")
             if plate_type == "oceanic":
-                slope = -height_amplitude * 0.4 * (1 - dist_weight)  # slope UP to shore
+                base = -0.25 * height_amplitude
+                slope = -0.2 * height_amplitude * dist_weight
             else:
-                slope = height_amplitude * 0.2 * (1 - dist_weight)  # slope DOWN to shore
+                base = 0.2 * height_amplitude
+                # Inverted slope direction: raise interior more than edge
+                slope = slope_strength * height_amplitude * (1.0 - dist_weight)
 
-            # Optional: adjust slope based on nearby extremes (mountains/trenches)
+                # Flatten the central interior slightly
+                if dist_weight < 0.05:
+                    slope *= 0.5
+
+                # Soften shorelines to prevent cliffy edges
+                if dist_weight > 0.95:
+                    slope = min(slope, 0.0)
+
+            # Adjust slope based on nearby extremes (mountains/trenches)
             mountain_thresh = 0.6 * height_amplitude
             trench_thresh = -0.6 * height_amplitude
             max_search_depth = 3
@@ -73,7 +112,7 @@ def slope_craton_centers(face_centers, assigned, plate_types, face_elevations, a
                         visited.add(neighbor)
                 frontier = next_frontier
 
-            face_elevations[i] += slope
+            face_elevations[i] += base + slope
 
 
 def normalize_elevations(face_elevations):
@@ -98,9 +137,8 @@ def normalize_elevations(face_elevations):
     if min_elev == max_elev:
         return elev_array.tolist()  # avoid divide-by-zero
 
-    # Normalize to range [-1, 1], centered at 0, then bias upward toward sea-level
+    # Normalize to range [-1, 1], centered at 0, then bias toward sea-level
     scaled = 2 * (elev_array - min_elev) / (max_elev - min_elev) - 1
-    # scaled += 0.15  # bias toward raising average continental elevation
     scaled = np.clip(scaled, -1, 1)
     normalized = scaled * height_amplitude
 
