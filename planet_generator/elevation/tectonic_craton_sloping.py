@@ -7,7 +7,7 @@ from .utils import get_height_amplitude
 
 # TODO: Change the slope method from center-to-edge to edge-based-inward gradients (which I hope will create foothill
 #       ridges).
-def slope_craton_centers(vertices, faces, face_centers, assigned, plate_types, face_elevations, adjacency):
+def slope_craton_centers(face_centers, assigned, plate_types, face_elevations, adjacency):
     """
     Applies an inward-to-outward elevation gradient within each craton.
 
@@ -18,8 +18,6 @@ def slope_craton_centers(vertices, faces, face_centers, assigned, plate_types, f
     adding variation near strong features.
 
     Args:
-        vertices (np.ndarray): Vertex positions.
-        faces (list[tuple[int]]): Face definitions.
         face_centers (np.ndarray): Precomputed unit vectors representing face centers.
         assigned (list[int]): Craton ID assigned per face.
         plate_types (dict[int, str]): Craton type per seed ID.

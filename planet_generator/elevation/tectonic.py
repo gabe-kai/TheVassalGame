@@ -86,7 +86,7 @@ def compute_tectonic_elevation(vertices, faces, face_centers, adjacency):
     motion_vectors = assign_motion_vectors(list(plate_types.keys()), rng)
     apply_boundary_interactions(face_centers, adjacency, craton_faces, motion_vectors, face_elevations, rng, plate_types)
     smooth_boundaries(faces, adjacency, face_elevations)
-    slope_craton_centers(vertices, faces, face_centers, craton_faces, plate_types, face_elevations, adjacency)
+    slope_craton_centers(face_centers, craton_faces, plate_types, face_elevations, adjacency)
     face_elevations[:] = normalize_elevations(face_elevations)
 
     if config.debug_mode:
