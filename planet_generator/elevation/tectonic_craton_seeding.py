@@ -40,6 +40,13 @@ def seed_cratons_with_types(total_faces, count, rng):
             if config.debug_mode:
                 continental += 1
 
+    # Ensure at least 1 continental craton
+    if all(ptype == "oceanic" for ptype in plate_types.values()):
+        force_one = rng.choice(craton_seeds)
+        plate_types[force_one] = "continental"
+        if config.debug_mode:
+            print(f"[DEBUG] All oceanic plates detected — forcing craton {force_one} to continental")
+
     if config.debug_mode:
         print(f"[DEBUG] Plate types assigned: {continental} continental, {oceanic} oceanic")
 

@@ -2,6 +2,7 @@
 
 import numpy as np
 from planet_generator import config
+from .elevation.utils import get_height_amplitude
 
 
 def get_latitude(vertex):
@@ -22,7 +23,7 @@ def apply_face_coloring(vertices, faces, face_elevations):
 
     # Define elevation zones based on global amplitude and sea level
     sea_level = config.sea_level
-    height_amplitude = config.height_amplitude
+    height_amplitude = get_height_amplitude()
 
     grassline_max = sea_level + height_amplitude * 0.29       # upper bound of grasslands
     foothill_max = sea_level + height_amplitude * 0.42        # upper bound of foothills

@@ -8,7 +8,9 @@ from planet_generator import config
 from .tectonic_craton_seeding import seed_cratons_with_types
 from .tectonic_craton_growth import grow_cratons
 from .tectonic_boundary_interactions import assign_motion_vectors, apply_boundary_interactions, smooth_boundaries
-from .tectonic_craton_sloping import slope_craton_centers
+from .tectonic_craton_sloping import slope_craton_centers, normalize_elevations
+from .utils import estimate_craton_count
+
 
 def compute_tectonic_elevation(vertices, faces, face_centers, adjacency):
     """
@@ -67,8 +69,7 @@ def compute_tectonic_elevation(vertices, faces, face_centers, adjacency):
 
     vertices: np.ndarray = np.array(vertices, dtype=np.float64)
     total_faces = len(faces)
-    surface_area_km2 = 4 * math.pi * config.radius**2
-    estimated_craton_count = config.craton_count or max(8, int(surface_area_km2 / 8e7))
+    estimated_craton_count = estimate_craton_count(total_faces, config.radius)
     rng = np.random.default_rng()  # Map generation seed, set to a static number to get the same map repeatedly.
 
     # Seed the craton starting spots on random faces, and then assign face types (Continental or Oceanic).
@@ -86,6 +87,7 @@ def compute_tectonic_elevation(vertices, faces, face_centers, adjacency):
     apply_boundary_interactions(face_centers, adjacency, craton_faces, motion_vectors, face_elevations, rng, plate_types)
     smooth_boundaries(faces, adjacency, face_elevations)
     slope_craton_centers(vertices, faces, craton_faces, plate_types, face_elevations, adjacency)
+    face_elevations[:] = normalize_elevations(face_elevations)
 
     if config.debug_mode:
         elevations = np.array(face_elevations)

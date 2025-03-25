@@ -4,6 +4,7 @@ from planet_generator import config
 from collections import deque
 import numpy as np
 from noise import snoise3  # Simplex noise for smooth spatial distortion
+from .utils import get_height_amplitude
 
 
 def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations, vertices):
@@ -33,8 +34,9 @@ def grow_cratons(faces, craton_seeds, adjacency, plate_types, face_elevations, v
 
 
 def compute_base_elevations(craton_seeds, plate_types):
+    height_amplitude = get_height_amplitude()
     return {
-        cid: (-config.height_amplitude * 0.4 if plate_types[cid] == "oceanic" else config.height_amplitude * 0.1)
+        cid: (-height_amplitude * 0.4 if plate_types[cid] == "oceanic" else height_amplitude * 0.1)
         for cid in craton_seeds
     }
 

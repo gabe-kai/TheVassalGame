@@ -3,6 +3,7 @@
 import numpy as np
 from noise import pnoise3
 from planet_generator import config
+from .utils import get_height_amplitude
 
 
 def compute_perlin_elevation(vertices, faces):
@@ -11,6 +12,7 @@ def compute_perlin_elevation(vertices, faces):
     Returns:
         - face_elevations: list of elevation values per face
     """
+    height_amplitude = get_height_amplitude()
     face_elevations = []
 
     for tri in faces:
@@ -29,7 +31,7 @@ def compute_perlin_elevation(vertices, faces):
 
         # Stretch noise range from ~[-0.5, 0.5] → [-1, 1]
         avg_noise = (noise_value / config.octaves) * 2
-        elevation = avg_noise * config.height_amplitude
+        elevation = avg_noise * height_amplitude
         face_elevations.append(elevation)
 
         if config.apply_elevation:

@@ -7,7 +7,7 @@ subdivision_depth = 6           # Icosphere detail level. Integer >= 0. Higher =
 # Noise & elevation
 apply_elevation = True
 elevation_method = "tectonic"   # Options: "perlin" or "tectonic"
-height_amplitude = 1200         # Maximum elevation displacement in km. Suggested: 200–3000
+height_amplitude_ratio = 0.05   # Max elevation = ±5% of planet radius
 sea_level = 0.0                 # Base elevation of sea level
 
 # Perlin parameters
@@ -17,8 +17,12 @@ noise_offset_y = 0.0            # Vertical shift of noise pattern. Can be any fl
 noise_warp = 2.0                # Adds turbulence to noise. 0 = no warp. 1–5 = mild. >10 = chaotic.
 octaves = 3                     # Number of Perlin noise layers. 1–6 recommended.
 persistence = 0.5               # Falloff per octave. Range: 0–1. Lower = smoother terrain.
+
 # Tectonic parameters
-craton_count = 0                # If 0 it will be a function of the planets surface area.
+craton_density = 0.0001         # Higher means more tectonic plates for a given mesh density
+craton_exponent = 1.5           # Higher makes the craton count scale more strongly with planet size.
+craton_reference_radius = 6371  # Earth-like baseline
+craton_min_count = 7            # Keep the number odd to prevent quadrant or evenly-split halves
 oceanic_craton_fraction = 0.6   # At 0.5, half of cratons will be ocean plates
 craton_growth_method = "voronoi"    # Choose "bfs" or "voronoi"
 

@@ -2,6 +2,7 @@
 
 from planet_generator import config
 import numpy as np
+from .utils import get_height_amplitude
 
 
 def assign_motion_vectors(craton_ids, rng):
@@ -53,23 +54,24 @@ def apply_boundary_interactions(face_centers, adjacency, assigned, motion_vector
     if config.debug_mode:
         print("[DEBUG] Applying boundary interactions...")
 
+    height_amplitude = get_height_amplitude()
     threshold = 0.1
     debug_count = 0
     debug_count_display_limit = 10
 
     # Converging lifts
-    cont_cont_converge = config.height_amplitude * 0.8                  # big mountains for continental collision
-    cont_ocean_converge_cont_side = config.height_amplitude             # tall coastal mountains
-    cont_ocean_converge_ocean_side = -config.height_amplitude * 0.8     # trench
-    ocean_ocean_converge_ratio = 0.06                                   # relative to ocean base height
+    cont_cont_converge = height_amplitude * 1.2                  # big mountains for continental collision
+    cont_ocean_converge_cont_side = height_amplitude * 1.4       # tall coastal mountains
+    cont_ocean_converge_ocean_side = -height_amplitude * 1.0     # trench
+    ocean_ocean_converge_ratio = 0.1                             # relative to ocean base height
 
     # Diverging lowers or forms ridges
-    cont_cont_diverge = -config.height_amplitude * 0.2                  # continental rift
-    ocean_ocean_diverge = config.height_amplitude * 0.1                 # mid-ocean ridge
-    cont_ocean_diverge = -config.height_amplitude * 0.1                 # mild rift near coasts
+    cont_cont_diverge = -height_amplitude * 0.2                  # continental rift
+    ocean_ocean_diverge = height_amplitude * 0.1                 # mid-ocean ridge
+    cont_ocean_diverge = -height_amplitude * 0.1                 # mild rift near coasts
 
     # Transform gets random fracturing
-    transform_variation = config.height_amplitude * 0.05
+    transform_variation = height_amplitude * 0.05
 
     for face_idx, neighbors in adjacency.items():
         plate_a = assigned[face_idx]
@@ -106,8 +108,8 @@ def apply_boundary_interactions(face_centers, adjacency, assigned, motion_vector
 
             if interaction == "converging":
                 # Each pair of plate types has custom logic
-                variation_a = rng.normal(loc=1.0, scale=0.18)
-                variation_b = rng.normal(loc=1.0, scale=0.18)
+                variation_a = rng.normal(loc=1.1, scale=0.1)
+                variation_b = rng.normal(loc=1.1, scale=0.1)
                 if ptype_a == "continental" and ptype_b == "continental":
                     # Big collision mountains
                     face_elevations[face_idx] += cont_cont_converge * variation_a
@@ -126,14 +128,14 @@ def apply_boundary_interactions(face_centers, adjacency, assigned, motion_vector
                 else:  # oceanic-oceanic
                     base_a = face_elevations[face_idx]
                     base_b = face_elevations[neighbor_idx]
-                    rise = config.height_amplitude * ocean_ocean_converge_ratio
-                    face_elevations[face_idx] += (rise * (1 - abs(base_a) / config.height_amplitude)) * variation_a
-                    face_elevations[neighbor_idx] += (rise * (1 - abs(base_b) / config.height_amplitude)) * variation_b
+                    rise = height_amplitude * ocean_ocean_converge_ratio
+                    face_elevations[face_idx] += (rise * (1 - abs(base_a) / height_amplitude)) * variation_a
+                    face_elevations[neighbor_idx] += (rise * (1 - abs(base_b) / height_amplitude)) * variation_b
 
             elif interaction == "diverging":
                 # Similar logic for plate combos
-                variation_a = rng.normal(loc=1.0, scale=0.18)
-                variation_b = rng.normal(loc=1.0, scale=0.18)
+                variation_a = rng.normal(loc=1.1, scale=0.1)
+                variation_b = rng.normal(loc=1.1, scale=0.1)
                 if ptype_a == "continental" and ptype_b == "continental":
                     face_elevations[face_idx] += cont_cont_diverge * variation_a
                     face_elevations[neighbor_idx] += cont_cont_diverge * variation_b
@@ -180,6 +182,7 @@ def smooth_boundaries(faces, adjacency, face_elevations):
     max_smoothing_layers = 6
     decay_factor = 0.07
     total_faces = len(faces)
+    height_amplitude = get_height_amplitude()
     influence = [0.0] * total_faces
     visited = [False] * total_faces
 
@@ -195,7 +198,7 @@ def smooth_boundaries(faces, adjacency, face_elevations):
             for neighbor in adjacency[face]:
                 if not visited[neighbor]:
                     # Skip spreading from high peaks to preserve sharp mountains
-                    if abs(face_elevations[face]) > 0.8 * config.height_amplitude:
+                    if abs(face_elevations[face]) > 0.8 * height_amplitude:
                         continue
                     falloff = decay_factor ** layer
                     influence[neighbor] += face_elevations[face] * falloff
