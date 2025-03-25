@@ -5,11 +5,9 @@ from planet_generator import config
 from .utils import get_height_amplitude
 
 
-# TODO: Instead of computing the face-centers multiple times, use the pre-computed face_centers that you should have
-#       cached from the apply_boundary_interactions function.
 # TODO: Change the slope method from center-to-edge to edge-based-inward gradients (which I hope will create foothill
 #       ridges).
-def slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations, adjacency):
+def slope_craton_centers(vertices, faces, face_centers, assigned, plate_types, face_elevations, adjacency):
     """
     Applies an inward-to-outward elevation gradient within each craton.
 
@@ -22,6 +20,7 @@ def slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations
     Args:
         vertices (np.ndarray): Vertex positions.
         faces (list[tuple[int]]): Face definitions.
+        face_centers (np.ndarray): Precomputed unit vectors representing face centers.
         assigned (list[int]): Craton ID assigned per face.
         plate_types (dict[int, str]): Craton type per seed ID.
         face_elevations (list[float]): Elevation values to modify in-place.
@@ -41,11 +40,11 @@ def slope_craton_centers(vertices, faces, assigned, plate_types, face_elevations
     for craton_id, face_indices in craton_faces.items():
         if not face_indices:
             continue
-        centers = [np.mean(vertices[np.array(faces[i])], axis=0) for i in face_indices]
+        centers = face_centers[face_indices]
         plate_center = np.mean(centers, axis=0)
 
         for i in face_indices:
-            face_center = np.mean(vertices[np.array(faces[i])], axis=0)
+            face_center = face_centers[i]
             dist = np.linalg.norm(plate_center - face_center)
             dist_weight = dist / config.radius
 
