@@ -42,29 +42,7 @@ def compute_tectonic_elevation(vertices, faces, face_centers, adjacency):
             if not nbrs:
                 print(f"Face {fidx} has NO neighbors!")
 
-        # DEBUG: Check for disconnected regions across the entire planet mesh
-        print("[DEBUG] Checking for disconnected regions across the entire planet mesh...")
-        visited_global = set()
-        components = []
-        total_faces = len(faces)
-        for face_idx in range(total_faces):
-            if face_idx not in visited_global:
-                # BFS from face_idx to find all connected faces
-                queue = deque([face_idx])
-                visited_local = set([face_idx])
-                visited_global.add(face_idx)
-
-                while queue:
-                    current = queue.popleft()
-                    for neigh in adjacency[current]:
-                        if neigh not in visited_global:
-                            visited_global.add(neigh)
-                            visited_local.add(neigh)
-                            queue.append(neigh)
-                components.append(visited_local)
-        print(f"[DEBUG] Found {len(components)} disconnected region(s).")
-        for i, comp in enumerate(components):
-            print(f"        Region {i+1} has {len(comp)} faces.")
+        debug_disconnected_regions(adjacency, faces)
 
     vertices: np.ndarray = np.array(vertices, dtype=np.float64)
     total_faces = len(faces)
@@ -81,59 +59,87 @@ def compute_tectonic_elevation(vertices, faces, face_centers, adjacency):
         unassigned_count = sum(1 for cid in craton_faces if cid == -1)
         print(f"[DEBUG] Unassigned faces after growth: {unassigned_count}")
 
-    # Assign motion vectors, calculate boundary interactions, smooth the boundaries, and slope the cratons
+    # Assign a motion vector to each craton to determine collision.
     motion_vectors = assign_motion_vectors(list(plate_types.keys()), rng)
+
+    # Converge, diverge, or transform the cratons where they interact
     apply_boundary_interactions(face_centers, adjacency, craton_faces, motion_vectors, face_elevations, rng, plate_types)
+
+    # Smooth the boundaries between mountains and landmasses or seas
     smooth_boundaries(faces, adjacency, face_elevations)
+
+    # Slope the cratons so they have shores and high or low points
     slope_craton_centers(face_centers, craton_faces, plate_types, face_elevations, adjacency)
+
+    # Normalize the face elevations to within the expected range, a function of the planet radius.
     face_elevations[:] = normalize_elevations(face_elevations)
 
     if config.debug_mode:
-        elevations = np.array(face_elevations)
-        min_elev = elevations.min()
-        max_elev = elevations.max()
-
-        sea_level = config.sea_level
-        height_amplitude = get_height_amplitude()
-        mountain_thresh = sea_level + height_amplitude * config.mountain_zone_threshold
-        trench_thresh = sea_level - height_amplitude * config.trench_zone_threshold
-
-        ocean_indices = [i for i, cid in enumerate(craton_faces) if plate_types.get(cid) == "oceanic"]
-        cont_indices = [i for i, cid in enumerate(craton_faces) if plate_types.get(cid) == "continental"]
-
-        # Exclude trenches and mountains from average calculations
-        ocean_main = [i for i in ocean_indices if elevations[i] >= trench_thresh]
-        cont_main = [i for i in cont_indices if elevations[i] <= mountain_thresh]
-
-        ocean_depths = elevations[ocean_main] if ocean_main else np.array([])
-        cont_heights = elevations[cont_main] if cont_main else np.array([])
-
-        avg_ocean = ocean_depths.mean() if len(ocean_depths) > 0 else 0.0
-        avg_cont = cont_heights.mean() if len(cont_heights) > 0 else 0.0
-
-        trench_avg = elevations[
-            [i for i in ocean_indices if elevations[i] < avg_ocean]].mean() if ocean_indices else 0.0
-        mount_avg = elevations[[i for i in cont_indices if elevations[i] > avg_cont]].mean() if cont_indices else 0.0
-
-        print("[DEBUG] Elevation Summary:")
-        print(f"         Lowest: {min_elev:.3f}km")
-        print(f"         Highest: {max_elev:.3f}km")
-        print(f"         Avg Ocean Depth: {avg_ocean:.3f}km")
-        print(f"         Avg Cont. Height: {avg_cont:.3f}km")
-        print(f"         Avg Ocean Trench: {trench_avg:.3f}km")
-        print(f"         Avg Cont. Mountain: {mount_avg:.3f}km")
-
-    if config.debug_mode:
-        print("[DEBUG] Terrain Classification Thresholds (in km):")
-        print(
-            f"         Lowland/Plains Threshold:  {sea_level + height_amplitude * config.plains_zone_threshold:.3f}km")
-        print(
-            f"         Foothill Threshold:        {sea_level + height_amplitude * config.foothills_zone_threshold:.3f}km")
-        print(
-            f"         Mountain Threshold:        {sea_level + height_amplitude * config.mountain_zone_threshold:.3f}km")
-        print(
-            f"         Mountain Peak Threshold:   {sea_level + height_amplitude * config.mountain_peak_threshold:.3f}km")
-        print(
-            f"         Ocean Trench Threshold:    {sea_level - height_amplitude * config.trench_zone_threshold:.3f}km")
+        debug_elevation_summary(face_elevations, craton_faces, plate_types)
 
     return face_elevations, craton_faces, motion_vectors
+
+
+def debug_disconnected_regions(adjacency, faces):
+    print("[DEBUG] Checking for disconnected regions across the entire planet mesh...")
+    visited_global = set()
+    components = []
+    total_faces = len(faces)
+    for face_idx in range(total_faces):
+        if face_idx not in visited_global:
+            queue = deque([face_idx])
+            visited_local = set([face_idx])
+            visited_global.add(face_idx)
+            while queue:
+                current = queue.popleft()
+                for neigh in adjacency[current]:
+                    if neigh not in visited_global:
+                        visited_global.add(neigh)
+                        visited_local.add(neigh)
+                        queue.append(neigh)
+            components.append(visited_local)
+    print(f"[DEBUG] Found {len(components)} disconnected region(s).")
+    for i, comp in enumerate(components):
+        print(f"        Region {i+1} has {len(comp)} faces.")
+
+
+def debug_elevation_summary(face_elevations, craton_faces, plate_types):
+    elevations = np.array(face_elevations)
+    min_elev = elevations.min()
+    max_elev = elevations.max()
+
+    sea_level = config.sea_level
+    height_amplitude = get_height_amplitude()
+    mountain_thresh = sea_level + height_amplitude * config.mountain_zone_threshold
+    trench_thresh = sea_level - height_amplitude * config.trench_zone_threshold
+
+    ocean_indices = [i for i, cid in enumerate(craton_faces) if plate_types.get(cid) == "oceanic"]
+    cont_indices = [i for i, cid in enumerate(craton_faces) if plate_types.get(cid) == "continental"]
+
+    ocean_main = [i for i in ocean_indices if elevations[i] >= trench_thresh]
+    cont_main = [i for i in cont_indices if elevations[i] <= mountain_thresh]
+
+    ocean_depths = elevations[ocean_main] if ocean_main else np.array([])
+    cont_heights = elevations[cont_main] if cont_main else np.array([])
+
+    avg_ocean = ocean_depths.mean() if len(ocean_depths) > 0 else 0.0
+    avg_cont = cont_heights.mean() if len(cont_heights) > 0 else 0.0
+
+    trench_avg = elevations[
+        [i for i in ocean_indices if elevations[i] < avg_ocean]].mean() if ocean_indices else 0.0
+    mount_avg = elevations[[i for i in cont_indices if elevations[i] > avg_cont]].mean() if cont_indices else 0.0
+
+    print("[DEBUG] Elevation Summary:")
+    print(f"         Lowest: {min_elev:.3f}km")
+    print(f"         Highest: {max_elev:.3f}km")
+    print(f"         Avg Ocean Depth: {avg_ocean:.3f}km")
+    print(f"         Avg Cont. Height: {avg_cont:.3f}km")
+    print(f"         Avg Ocean Trench: {trench_avg:.3f}km")
+    print(f"         Avg Cont. Mountain: {mount_avg:.3f}km")
+
+    print("[DEBUG] Terrain Classification Thresholds (in km):")
+    print(f"         Lowland/Plains Threshold:  {sea_level + height_amplitude * config.plains_zone_threshold:.3f}km")
+    print(f"         Foothill Threshold:        {sea_level + height_amplitude * config.foothills_zone_threshold:.3f}km")
+    print(f"         Mountain Threshold:        {sea_level + height_amplitude * config.mountain_zone_threshold:.3f}km")
+    print(f"         Mountain Peak Threshold:   {sea_level + height_amplitude * config.mountain_peak_threshold:.3f}km")
+    print(f"         Ocean Trench Threshold:    {sea_level - height_amplitude * config.trench_zone_threshold:.3f}km")

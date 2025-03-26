@@ -6,7 +6,7 @@ from .perlin import compute_perlin_elevation
 from .tectonic import compute_tectonic_elevation
 
 
-def compute_face_elevation(vertices, faces, face_centers, adjacency=None):
+def select_elevation_method(vertices, faces, face_centers, adjacency=None):
     """
     Dispatches to the correct elevation method based on config.elevation_method.
     Returns:
