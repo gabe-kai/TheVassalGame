@@ -1,0 +1,831 @@
+# Resource Types Seed Data
+# This file contains the initial resource types and their metadata
+# Format: YAML for human readability and easy editing
+
+resources:
+  # Raw Materials
+  - name: "Lumber"
+    slug: "lumber"
+    category: "raw_material"
+    description: "Basic wood harvested from forests"
+    detailed_description: "Lumber is the foundation of wood-based construction and crafting. It is harvested directly from forests and processed into refined materials."
+    icon: "lumber"
+    rarity: "common"
+    gathering_method: "harvesting"
+    base_value: 1
+    stack_size: 1000
+    production_chain: "wood"
+    production_tier: 1
+
+  - name: "Stone Blocks"
+    slug: "stone_blocks"
+    category: "raw_material"
+    description: "Raw stone extracted from quarries"
+    detailed_description: "Stone blocks are the basic building material extracted from quarries. They form the foundation of stone construction and can be processed into cut stone and specialized materials."
+    icon: "stone_blocks"
+    rarity: "common"
+    gathering_method: "mining"
+    base_value: 1
+    stack_size: 1000
+    production_chain: "stone"
+    production_tier: 1
+
+  - name: "Iron Ore"
+    slug: "iron_ore"
+    category: "raw_material"
+    description: "Raw iron ore extracted from mines"
+    detailed_description: "Iron ore is the primary metal resource extracted from mines. It must be smelted to create usable metal ingots for tools, weapons, and construction."
+    icon: "iron_ore"
+    rarity: "common"
+    gathering_method: "mining"
+    base_value: 2
+    stack_size: 500
+    production_chain: "metal"
+    production_tier: 1
+
+  - name: "Food"
+    slug: "food"
+    category: "raw_material"
+    description: "Basic food produced through farming"
+    detailed_description: "Food sustains the population and can be processed into improved meals. It is the foundation of the food chain."
+    icon: "food"
+    rarity: "common"
+    gathering_method: "farming"
+    base_value: 1
+    stack_size: 1000
+    production_chain: "food"
+    production_tier: 1
+
+  - name: "Raw Herbs"
+    slug: "raw_herbs"
+    category: "raw_material"
+    description: "Fresh herbs harvested from gardens"
+    detailed_description: "Raw herbs are the foundation of alchemy and medicine. They must be dried and processed to create refined herbs and alchemical ingredients."
+    icon: "raw_herbs"
+    rarity: "common"
+    gathering_method: "gathering"
+    base_value: 2
+    stack_size: 500
+    production_chain: "herb"
+    production_tier: 1
+
+  - name: "Water Tokens"
+    slug: "water_tokens"
+    category: "raw_material"
+    description: "Basic water collected from wells and sources"
+    detailed_description: "Water tokens represent basic water supplies. They can be purified and refined into higher-quality water for advanced uses."
+    icon: "water_tokens"
+    rarity: "common"
+    gathering_method: "collection"
+    base_value: 1
+    stack_size: 1000
+    production_chain: "water"
+    production_tier: 1
+
+  - name: "Rare Ore"
+    slug: "rare_ore"
+    category: "raw_material"
+    description: "Rare metals found in deeper mines"
+    detailed_description: "Rare ore is found in deeper mine shafts and is used to create advanced alloys and specialized metal products."
+    icon: "rare_ore"
+    rarity: "uncommon"
+    gathering_method: "mining"
+    base_value: 5
+    stack_size: 200
+    production_chain: "metal"
+    production_tier: 2
+
+  - name: "Qi Crystals"
+    slug: "qi_crystal"
+    category: "raw_material"
+    description: "Crystals formed from condensed qi"
+    detailed_description: "Qi crystals are the basic form of condensed spiritual energy. They are used in formations, construction, and various crafting processes."
+    icon: "qi_crystal"
+    rarity: "uncommon"
+    gathering_method: "condensation"
+    base_value: 10
+    stack_size: 100
+    production_chain: "qi"
+    production_tier: 1
+
+  # Processed Materials
+  - name: "Refined Lumber"
+    slug: "refined_lumber"
+    category: "processed_material"
+    description: "Processed and refined wood"
+    detailed_description: "Refined lumber is created by processing raw lumber. It has better quality and is used in advanced construction and crafting."
+    icon: "refined_lumber"
+    rarity: "common"
+    gathering_method: "processing"
+    base_value: 3
+    stack_size: 500
+    production_chain: "wood"
+    production_tier: 2
+    created_from: ["lumber"]
+
+  - name: "Cut Stone"
+    slug: "cut_stone"
+    category: "processed_material"
+    description: "Precisely cut stone panels"
+    detailed_description: "Cut stone is processed from raw stone blocks. It has better precision and is used in advanced construction."
+    icon: "cut_stone"
+    rarity: "common"
+    gathering_method: "processing"
+    base_value: 3
+    stack_size: 500
+    production_chain: "stone"
+    production_tier: 2
+    created_from: ["stone_blocks"]
+
+  - name: "Iron Ingots"
+    slug: "iron_ingots"
+    category: "processed_material"
+    description: "Smelted iron ready for crafting"
+    detailed_description: "Iron ingots are created by smelting iron ore. They are the basic metal material for tools, weapons, and construction."
+    icon: "iron_ingots"
+    rarity: "common"
+    gathering_method: "smelting"
+    base_value: 5
+    stack_size: 200
+    production_chain: "metal"
+    production_tier: 2
+    created_from: ["iron_ore"]
+
+  - name: "Steel Ingots"
+    slug: "steel_ingots"
+    category: "processed_material"
+    description: "High-quality steel ingots"
+    detailed_description: "Steel ingots are created by refining iron with rare ores. They are stronger and used in advanced tools and weapons."
+    icon: "steel_ingots"
+    rarity: "uncommon"
+    gathering_method: "smelting"
+    base_value: 15
+    stack_size: 100
+    production_chain: "metal"
+    production_tier: 3
+    created_from: ["iron_ingots", "rare_ore"]
+
+  - name: "Processed Food"
+    slug: "processed_food"
+    category: "processed_material"
+    description: "Milled and processed food"
+    detailed_description: "Processed food is created by milling raw food. It provides better sustenance and is used in advanced cooking."
+    icon: "processed_food"
+    rarity: "common"
+    gathering_method: "processing"
+    base_value: 2
+    stack_size: 500
+    production_chain: "food"
+    production_tier: 2
+    created_from: ["food"]
+
+  - name: "Refined Herbs"
+    slug: "refined_herbs"
+    category: "processed_material"
+    description: "Dried and processed herbs"
+    detailed_description: "Refined herbs are created by drying raw herbs. They have better potency and are used in alchemy and medicine."
+    icon: "refined_herbs"
+    rarity: "common"
+    gathering_method: "processing"
+    base_value: 5
+    stack_size: 200
+    production_chain: "herb"
+    production_tier: 2
+    created_from: ["raw_herbs"]
+
+  - name: "Purified Water"
+    slug: "purified_water"
+    category: "processed_material"
+    description: "Purified and clean water"
+    detailed_description: "Purified water is created by filtering and purifying basic water. It is used in advanced cooking and alchemy."
+    icon: "purified_water"
+    rarity: "common"
+    gathering_method: "processing"
+    base_value: 3
+    stack_size: 500
+    production_chain: "water"
+    production_tier: 2
+    created_from: ["water_tokens"]
+
+  - name: "Essence Pebbles"
+    slug: "essence_pebbles"
+    category: "processed_material"
+    description: "Small fragments of spiritual essence"
+    detailed_description: "Essence pebbles are extracted from ore tailings and basic essence processing. They are the foundation of essence refinement."
+    icon: "essence_pebbles"
+    rarity: "uncommon"
+    gathering_method: "processing"
+    base_value: 8
+    stack_size: 100
+    production_chain: "essence"
+    production_tier: 1
+    created_from: ["iron_ore"]
+
+  - name: "Mana Crystals"
+    slug: "mana_crystal"
+    category: "processed_material"
+    description: "Crystals formed from condensed qi"
+    detailed_description: "Mana crystals are created by condensing ambient qi. They are more powerful than basic qi crystals and used in advanced formations."
+    icon: "mana_crystal"
+    rarity: "uncommon"
+    gathering_method: "condensation"
+    base_value: 25
+    stack_size: 50
+    production_chain: "qi"
+    production_tier: 2
+    created_from: ["qi_crystal"]
+
+  # Refined Products
+  - name: "Spirit Timber"
+    slug: "spirit_timber"
+    category: "refined_product"
+    description: "Qi-infused wood with spiritual properties"
+    detailed_description: "Spirit timber is created by infusing wood with qi. It has enhanced properties and is used in spirit-infused construction and formations."
+    icon: "spirit_timber"
+    rarity: "uncommon"
+    gathering_method: "crafting"
+    base_value: 20
+    stack_size: 100
+    production_chain: "wood"
+    production_tier: 3
+    created_from: ["lumber", "refined_lumber", "qi_crystal"]
+
+  - name: "Spirit Planks"
+    slug: "spirit_planks"
+    category: "refined_product"
+    description: "Elite spirit-infused wooden planks"
+    detailed_description: "Spirit planks are the highest tier of wood products. They are created from refined lumber and spirit timber, used in elite construction."
+    icon: "spirit_planks"
+    rarity: "rare"
+    gathering_method: "crafting"
+    base_value: 50
+    stack_size: 50
+    production_chain: "wood"
+    production_tier: 4
+    created_from: ["refined_lumber", "spirit_timber"]
+
+  - name: "Spirit Stone Fragments"
+    slug: "spirit_stone_fragments"
+    category: "refined_product"
+    description: "Spirit-infused stone fragments"
+    detailed_description: "Spirit stone fragments are extracted from spirit-rich veins. They are used in spirit-infused construction and basic formations."
+    icon: "spirit_stone_fragments"
+    rarity: "uncommon"
+    gathering_method: "mining"
+    base_value: 15
+    stack_size: 100
+    production_chain: "stone"
+    production_tier: 3
+    created_from: ["stone_blocks"]
+
+  - name: "Attuned Stone"
+    slug: "attuned_stone"
+    category: "refined_product"
+    description: "Elementally attuned stone"
+    detailed_description: "Attuned stone is created by merging elemental qi with stone. It is used in elemental formations and advanced construction."
+    icon: "attuned_stone"
+    rarity: "rare"
+    gathering_method: "processing"
+    base_value: 30
+    stack_size: 50
+    production_chain: "stone"
+    production_tier: 4
+    created_from: ["stone_blocks", "spirit_stone_fragments"]
+
+  - name: "Spirit Alloys"
+    slug: "spirit_alloys"
+    category: "refined_product"
+    description: "Spirit-infused metal alloys"
+    detailed_description: "Spirit alloys are created by infusing metals with spiritual essence. They are used in spirit-infused weapons and advanced crafting."
+    icon: "spirit_alloys"
+    rarity: "rare"
+    gathering_method: "crafting"
+    base_value: 40
+    stack_size: 50
+    production_chain: "metal"
+    production_tier: 4
+    created_from: ["steel_ingots", "essence_pebbles", "qi_crystal"]
+
+  - name: "Essence Stones"
+    slug: "essence_stone"
+    category: "refined_product"
+    description: "Refined spiritual essence stones"
+    detailed_description: "Essence stones are created by refining essence pebbles and shards. They are used in advanced formations and high-tier crafting."
+    icon: "essence_stone"
+    rarity: "rare"
+    gathering_method: "processing"
+    base_value: 35
+    stack_size: 50
+    production_chain: "essence"
+    production_tier: 3
+    created_from: ["essence_pebbles", "essence_shard"]
+
+  - name: "Spirit Dew"
+    slug: "spirit_dew"
+    category: "refined_product"
+    description: "Spirit-infused water droplets"
+    detailed_description: "Spirit dew is created by infusing purified water with spiritual essence. It is used in spirit alchemy and advanced formations."
+    icon: "spirit_dew"
+    rarity: "rare"
+    gathering_method: "processing"
+    base_value: 25
+    stack_size: 50
+    production_chain: "water"
+    production_tier: 3
+    created_from: ["purified_water"]
+
+  - name: "Spirit Infused Meals"
+    slug: "spirit_infused_meals"
+    category: "refined_product"
+    description: "Meals infused with spiritual energy"
+    detailed_description: "Spirit infused meals are created by combining food with spirit herbs and qi. They provide cultivation buffs and enhanced recovery."
+    icon: "spirit_infused_meals"
+    rarity: "uncommon"
+    gathering_method: "crafting"
+    base_value: 15
+    stack_size: 100
+    production_chain: "food"
+    production_tier: 3
+    created_from: ["food", "spirit_herbs", "qi_crystal"]
+
+  - name: "Elixirs"
+    slug: "elixirs"
+    category: "refined_product"
+    description: "Potent healing and cultivation elixirs"
+    detailed_description: "Elixirs are created through advanced alchemy. They provide powerful healing and cultivation benefits."
+    icon: "elixirs"
+    rarity: "uncommon"
+    gathering_method: "crafting"
+    base_value: 30
+    stack_size: 50
+    production_chain: "herb"
+    production_tier: 3
+    created_from: ["refined_herbs", "spirit_herbs", "qi_crystal"]
+
+  # Specialized Resources
+  - name: "Celestial Alloy"
+    slug: "celestial_alloy"
+    category: "specialized"
+    description: "Ultimate metal alloy with celestial properties"
+    detailed_description: "Celestial alloy is the highest tier of metal products. It is created through master forging and used in legendary items."
+    icon: "celestial_alloy"
+    rarity: "legendary"
+    gathering_method: "crafting"
+    base_value: 200
+    stack_size: 10
+    production_chain: "metal"
+    production_tier: 5
+    created_from: ["spirit_alloys", "essence_stone"]
+
+  - name: "Celestial Cores"
+    slug: "celestial_cores"
+    category: "specialized"
+    description: "Ultimate essence cores with celestial harmony"
+    detailed_description: "Celestial cores are the highest tier of essence products. They are used in celestial formations and ultimate crafting."
+    icon: "celestial_cores"
+    rarity: "legendary"
+    gathering_method: "processing"
+    base_value: 250
+    stack_size: 10
+    production_chain: "essence"
+    production_tier: 5
+    created_from: ["essence_stone"]
+
+  - name: "Monolith Cores"
+    slug: "monolith_cores"
+    category: "specialized"
+    description: "Massive stone cores with defensive properties"
+    detailed_description: "Monolith cores are massive stone formations created from attuned stone. They provide settlement-wide defensive bonuses."
+    icon: "monolith_cores"
+    rarity: "legendary"
+    gathering_method: "processing"
+    base_value: 300
+    stack_size: 10
+    production_chain: "stone"
+    production_tier: 5
+    created_from: ["attuned_stone"]
+
+  - name: "Qi Cores"
+    slug: "qi_cores"
+    category: "specialized"
+    description: "Ultimate qi condensation cores"
+    detailed_description: "Qi cores are the highest tier of qi products. They provide sect-wide qi domain and are used in ultimate formations."
+    icon: "qi_cores"
+    rarity: "legendary"
+    gathering_method: "condensation"
+    base_value: 500
+    stack_size: 5
+    production_chain: "qi"
+    production_tier: 5
+    created_from: ["mana_crystal", "spirit_crystals"]
+
+  - name: "Mist Crystals"
+    slug: "mist_crystals"
+    category: "specialized"
+    description: "Crystallized spirit dew"
+    detailed_description: "Mist crystals are created by crystallizing spirit dew. They are used in specialized formations and unique crafting."
+    icon: "mist_crystals"
+    rarity: "legendary"
+    gathering_method: "processing"
+    base_value: 150
+    stack_size: 20
+    production_chain: "water"
+    production_tier: 4
+    created_from: ["spirit_dew"]
+
+  - name: "Rare Elixirs"
+    slug: "rare_elixirs"
+    category: "specialized"
+    description: "Master-grade alchemical elixirs"
+    detailed_description: "Rare elixirs are the highest tier of alchemical products. They provide master healing and rare cultivation benefits."
+    icon: "rare_elixirs"
+    rarity: "legendary"
+    gathering_method: "crafting"
+    base_value: 100
+    stack_size: 20
+    production_chain: "herb"
+    production_tier: 4
+    created_from: ["rare_herb_blossoms"]
+
+  # Additional Resources
+  - name: "Fertilizer"
+    slug: "fertilizer"
+    category: "processed_material"
+    description: "Soil enhancement material"
+    detailed_description: "Fertilizer is created from food production byproducts and beast essence. It improves crop yields and soil quality."
+    icon: "fertilizer"
+    rarity: "common"
+    gathering_method: "processing"
+    base_value: 5
+    stack_size: 200
+    production_chain: "food"
+    production_tier: 2
+    created_from: ["food", "beast_essence"]
+
+  - name: "Herb Powder"
+    slug: "herb_powder"
+    category: "processed_material"
+    description: "Ground herb powder for alchemy"
+    detailed_description: "Herb powder is created by grinding refined herbs. It is used as an ingredient in advanced alchemy."
+    icon: "herb_powder"
+    rarity: "uncommon"
+    gathering_method: "processing"
+    base_value: 10
+    stack_size: 100
+    production_chain: "herb"
+    production_tier: 3
+    created_from: ["refined_herbs"]
+
+  - name: "Distilled Water"
+    slug: "distilled_water"
+    category: "processed_material"
+    description: "Highly purified distilled water"
+    detailed_description: "Distilled water is created by further purifying water. It is used in precision alchemy and advanced medicine."
+    icon: "distilled_water"
+    rarity: "uncommon"
+    gathering_method: "processing"
+    base_value: 8
+    stack_size: 100
+    production_chain: "water"
+    production_tier: 3
+    created_from: ["purified_water"]
+
+  - name: "Essence Shard"
+    slug: "essence_shard"
+    category: "processed_material"
+    description: "Intermediate essence fragments"
+    detailed_description: "Essence shards are intermediate products in essence refinement, created from essence pebbles."
+    icon: "essence_shard"
+    rarity: "uncommon"
+    gathering_method: "processing"
+    base_value: 12
+    stack_size: 100
+    production_chain: "essence"
+    production_tier: 2
+    created_from: ["essence_pebbles"]
+
+  - name: "Spirit Core"
+    slug: "spirit_core"
+    category: "refined_product"
+    description: "Stabilized spiritual essence core"
+    detailed_description: "Spirit cores are created by stabilizing volatile essences. They are used in master formations and spirit catalysts."
+    icon: "spirit_core"
+    rarity: "rare"
+    gathering_method: "processing"
+    base_value: 60
+    stack_size: 20
+    production_chain: "essence"
+    production_tier: 4
+    created_from: ["essence_stone"]
+
+  - name: "Elemental Catalysts"
+    slug: "elemental_catalysts"
+    category: "specialized"
+    description: "Elemental essence catalysts"
+    detailed_description: "Elemental catalysts are created by blending elemental essences. They are used in elemental formations and specialized alchemy."
+    icon: "elemental_catalysts"
+    rarity: "rare"
+    gathering_method: "processing"
+    base_value: 80
+    stack_size: 20
+    production_chain: "essence"
+    production_tier: 4
+    created_from: ["essence_stone"]
+
+  - name: "Spirit Crystals"
+    slug: "spirit_crystals"
+    category: "refined_product"
+    description: "Refined spirit-infused crystals"
+    detailed_description: "Spirit crystals are created by refining qi or mana crystals. They are used in master formations and advanced crafting."
+    icon: "spirit_crystals"
+    rarity: "rare"
+    gathering_method: "processing"
+    base_value: 75
+    stack_size: 20
+    production_chain: "qi"
+    production_tier: 3
+    created_from: ["qi_crystal", "mana_crystal"]
+
+  - name: "Spirit Herbs"
+    slug: "spirit_herbs"
+    category: "refined_product"
+    description: "Spirit-infused herbs"
+    detailed_description: "Spirit herbs are herbs that have been infused with spiritual energy. They are used in advanced alchemy and spirit-infused crafting."
+    icon: "spirit_herbs"
+    rarity: "uncommon"
+    gathering_method: "processing"
+    base_value: 12
+    stack_size: 100
+    production_chain: "herb"
+    production_tier: 2
+    created_from: ["raw_herbs", "refined_herbs"]
+
+  - name: "Rare Herb Blossoms"
+    slug: "rare_herb_blossoms"
+    category: "specialized"
+    description: "Rare spirit-touched herb blossoms"
+    detailed_description: "Rare herb blossoms are extremely rare herbs found in spirit groves. They are used in master alchemy and rare elixirs."
+    icon: "rare_herb_blossoms"
+    rarity: "rare"
+    gathering_method: "gathering"
+    base_value: 50
+    stack_size: 20
+    production_chain: "herb"
+    production_tier: 3
+    created_from: ["raw_herbs"]
+
+  # Crafted Resources
+  - name: "Wooden Tools"
+    slug: "wooden_tools"
+    category: "crafted"
+    description: "Basic tools crafted from wood"
+    detailed_description: "Wooden tools are basic implements crafted from lumber. They are used in construction and basic tasks."
+    icon: "wooden_tools"
+    rarity: "common"
+    gathering_method: "crafting"
+    base_value: 5
+    stack_size: 200
+    production_chain: "crafting"
+    production_tier: 1
+    created_from: ["lumber"]
+
+  - name: "Decorative Furniture"
+    slug: "decorative_furniture"
+    category: "crafted"
+    description: "Decorative furniture for morale"
+    detailed_description: "Decorative furniture is crafted from refined lumber. It provides morale bonuses and aesthetic improvements."
+    icon: "decorative_furniture"
+    rarity: "uncommon"
+    gathering_method: "crafting"
+    base_value: 15
+    stack_size: 100
+    production_chain: "crafting"
+    production_tier: 2
+    created_from: ["refined_lumber"]
+
+  - name: "Structural Components"
+    slug: "structural_components"
+    category: "crafted"
+    description: "Pre-fabricated construction components"
+    detailed_description: "Structural components are crafted from refined lumber. They speed up construction and provide better building quality."
+    icon: "structural_components"
+    rarity: "uncommon"
+    gathering_method: "crafting"
+    base_value: 20
+    stack_size: 100
+    production_chain: "crafting"
+    production_tier: 3
+    created_from: ["refined_lumber"]
+
+  - name: "Spirit Reinforced Components"
+    slug: "spirit_reinforced_components"
+    category: "crafted"
+    description: "Spirit-infused construction components"
+    detailed_description: "Spirit reinforced components combine refined lumber with spirit timber. They provide enhanced durability and spirit properties."
+    icon: "spirit_reinforced_components"
+    rarity: "rare"
+    gathering_method: "crafting"
+    base_value: 40
+    stack_size: 50
+    production_chain: "crafting"
+    production_tier: 4
+    created_from: ["refined_lumber", "spirit_timber"]
+
+  - name: "Prefabricated Frames"
+    slug: "prefabricated_frames"
+    category: "crafted"
+    description: "Pre-built construction frames"
+    detailed_description: "Prefabricated frames are advanced construction components that significantly speed up building construction."
+    icon: "prefabricated_frames"
+    rarity: "rare"
+    gathering_method: "crafting"
+    base_value: 60
+    stack_size: 50
+    production_chain: "crafting"
+    production_tier: 5
+    created_from: ["refined_lumber", "spirit_timber"]
+
+  - name: "Reinforced Spirit Blocks"
+    slug: "reinforced_spirit_blocks"
+    category: "crafted"
+    description: "Spirit-infused reinforced stone blocks"
+    detailed_description: "Reinforced spirit blocks combine stone with spirit stone fragments. They are used in defensive structures and spirit-infused construction."
+    icon: "reinforced_spirit_blocks"
+    rarity: "uncommon"
+    gathering_method: "crafting"
+    base_value: 25
+    stack_size: 100
+    production_chain: "stone"
+    production_tier: 3
+    created_from: ["stone_blocks", "spirit_stone_fragments"]
+
+  - name: "Spirit Array Plates"
+    slug: "spirit_array_plates"
+    category: "crafted"
+    description: "Formation plates for defensive arrays"
+    detailed_description: "Spirit array plates are crafted from reinforced spirit blocks and formation-grade stone. They are used in defensive formations."
+    icon: "spirit_array_plates"
+    rarity: "rare"
+    gathering_method: "crafting"
+    base_value: 80
+    stack_size: 20
+    production_chain: "stone"
+    production_tier: 4
+    created_from: ["reinforced_spirit_blocks", "formation_grade_stone"]
+
+  - name: "Formation-grade Stone"
+    slug: "formation_grade_stone"
+    category: "crafted"
+    description: "Stone prepared for formation embedding"
+    detailed_description: "Formation-grade stone is specially prepared stone used in advanced formations. It can hold complex runic patterns."
+    icon: "formation_grade_stone"
+    rarity: "rare"
+    gathering_method: "crafting"
+    base_value: 70
+    stack_size: 20
+    production_chain: "stone"
+    production_tier: 4
+    created_from: ["attuned_stone"]
+
+  - name: "Basic Tonics"
+    slug: "basic_tonics"
+    category: "crafted"
+    description: "Basic healing tonics"
+    detailed_description: "Basic tonics are simple healing remedies crafted from raw herbs. They provide basic healing capabilities."
+    icon: "basic_tonics"
+    rarity: "common"
+    gathering_method: "crafting"
+    base_value: 8
+    stack_size: 100
+    production_chain: "herb"
+    production_tier: 1
+    created_from: ["raw_herbs"]
+
+  # Commerce Resources
+  - name: "Prestige Credits"
+    slug: "prestige_credits"
+    category: "commerce"
+    description: "Basic currency for trade"
+    detailed_description: "Prestige credits are the basic currency used in trade and commerce."
+    icon: "prestige_credits"
+    rarity: "common"
+    gathering_method: "trade"
+    base_value: 1
+    stack_size: 10000
+
+  - name: "Prestige Goods"
+    slug: "prestige_goods"
+    category: "commerce"
+    description: "Valued goods for trade and prestige"
+    detailed_description: "Prestige goods are crafted items valued in trade. They provide prestige and can be used in commerce."
+    icon: "prestige_goods"
+    rarity: "uncommon"
+    gathering_method: "crafting"
+    base_value: 30
+    stack_size: 100
+    created_from: ["refined_lumber", "decorative_furniture"]
+
+  - name: "Prestige Seals"
+    slug: "prestige_seals"
+    category: "commerce"
+    description: "High-value prestige currency"
+    detailed_description: "Prestige seals are high-value currency created by converting surplus refined goods. They represent significant prestige."
+    icon: "prestige_seals"
+    rarity: "rare"
+    gathering_method: "conversion"
+    base_value: 100
+    stack_size: 50
+    created_from: ["prestige_goods"]
+
+  - name: "Luxury Trade Goods"
+    slug: "luxury_trade_goods"
+    category: "commerce"
+    description: "High-value luxury items for trade"
+    detailed_description: "Luxury trade goods are high-value items used in elite trade and diplomacy."
+    icon: "luxury_trade_goods"
+    rarity: "rare"
+    gathering_method: "crafting"
+    base_value: 150
+    stack_size: 20
+
+  # Beast Resources
+  - name: "Beast Parts"
+    slug: "beast_parts"
+    category: "raw_material"
+    description: "Parts harvested from beasts"
+    detailed_description: "Beast parts are harvested from defeated creatures. They are used in crafting and trade."
+    icon: "beast_parts"
+    rarity: "common"
+    gathering_method: "hunting"
+    base_value: 5
+    stack_size: 200
+
+  - name: "Beast Essence"
+    slug: "beast_essence"
+    category: "processed_material"
+    description: "Spiritual essence extracted from beasts"
+    detailed_description: "Beast essence is extracted from beast parts. It is used in fertilizer production and advanced crafting."
+    icon: "beast_essence"
+    rarity: "uncommon"
+    gathering_method: "processing"
+    base_value: 15
+    stack_size: 100
+    created_from: ["beast_parts"]
+
+  - name: "Beast Cores"
+    slug: "beast_cores"
+    category: "refined_product"
+    description: "Powerful cores from elite beasts"
+    detailed_description: "Beast cores are extracted from powerful creatures. They are used in advanced crafting and core exchange."
+    icon: "beast_cores"
+    rarity: "rare"
+    gathering_method: "hunting"
+    base_value: 100
+    stack_size: 20
+
+  # Other Resources
+  - name: "Charcoal"
+    slug: "charcoal"
+    category: "processed_material"
+    description: "Fuel created from wood"
+    detailed_description: "Charcoal is created by processing wood. It is used as fuel for smelting and other processes."
+    icon: "charcoal"
+    rarity: "common"
+    gathering_method: "processing"
+    base_value: 2
+    stack_size: 500
+    created_from: ["lumber"]
+
+  - name: "Ink & Paper"
+    slug: "ink_paper"
+    category: "crafted"
+    description: "Writing materials for documentation"
+    detailed_description: "Ink and paper are crafted materials used for documentation, research, and record-keeping."
+    icon: "ink_paper"
+    rarity: "common"
+    gathering_method: "crafting"
+    base_value: 3
+    stack_size: 200
+
+  - name: "Honor Plaques"
+    slug: "honor_plaques"
+    category: "crafted"
+    description: "Plaques for honor and prestige"
+    detailed_description: "Honor plaques are crafted items that provide prestige and boost loyalty progression."
+    icon: "honor_plaques"
+    rarity: "uncommon"
+    gathering_method: "crafting"
+    base_value: 20
+    stack_size: 100
+
+  - name: "Festival Offerings"
+    slug: "festival_offerings"
+    category: "crafted"
+    description: "Offerings for festivals and celebrations"
+    detailed_description: "Festival offerings are crafted items used in celebrations to boost morale and culture."
+    icon: "festival_offerings"
+    rarity: "uncommon"
+    gathering_method: "crafting"
+    base_value: 25
+    stack_size: 100
+

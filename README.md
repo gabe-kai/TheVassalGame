@@ -1,6 +1,6 @@
 # TheVassalGame
 
-A persistent-world 4x RTS game inspired by Warcraft and Command & Conquer, with city simulation and tower defense elements.
+A Xianxia flavored persistent-world 4x RTS game inspired by Warcraft and Command & Conquer, with city simulation and tower defense elements.
 
 ## Project Overview
 

@@ -6,6 +6,14 @@
 
 TheVassalGame is a persistent-world 4x RTS game inspired by Warcraft and Command & Conquer, with city simulation and tower defense elements.
 
+### Background Story
+
+The planet has been slow-terraformed for millions of years inside a time-dilation field and is now ready for colonization. The biosphere, flora, and fauna have all been engineered by Imperial Cultivators, and one of the native species has been uplifted to sapience.
+
+Players create an Avatar who is a promising example of the uplifted species, competing to become the magistrate of a territory on the new planet. The player who develops the best territory and generates and refines the most mana will become the ruler of the planet once the contest ends. The refined mana will be used to upgrade the planet's core multiple times and to power a dimensional portal that will bring in the colonists.
+
+**Note:** Detailed lore and world-building will be documented in the public documentation system (lore articles). This summary provides the essential context for game design and development.
+
 ### Core Characteristics
 
 - **Game Type**: Top-down 4x RTS with city simulator and tower defense elements
@@ -49,6 +57,11 @@ TheVassalGame is a persistent-world 4x RTS game inspired by Warcraft and Command
 - **Database**: PostgreSQL (shared with game server)
 - **Authentication**: JWT tokens + OAuth2
 - **Payment**: Stripe
+- **Documentation System**: Markdown-based viewer for game lore and user documentation
+  - Users can read and comment on articles
+  - Users can request edits to articles
+  - StoryTellers and Admins can write, edit, archive articles
+  - Admins can delete articles
 
 ### Infrastructure
 - **Containerization**: Docker
@@ -63,67 +76,94 @@ TheVassalGame/
 │
 ├── PROJECT.md                    # ← THIS FILE: Entry point for project context
 ├── README.md                      # Quick start and overview
+├── .gitignore                     # Git ignore patterns (env files, dependencies, etc.)
 │
 ├── docs/                          # Design and technical documentation
 │   ├── design-document.md         # Main design document: overview, tech stack, phases
 │   ├── architecture.md            # Detailed technical architecture (server, client, networking)
+│   ├── workflows.md               # Game flows and component workflows (registration, gameplay, quests)
 │   ├── database-schema.md         # Complete PostgreSQL database schema
 │   ├── networking-protocol.md     # Client-server communication protocol specification
-│   └── api-specification.md       # Website REST API endpoints
+│   ├── api-specification.md       # Website REST API endpoints
+│   ├── building-types-reference.md # Building types reference and design documentation
+│   └── resources-reference.md     # Resource types and production chains reference
 │
-├── server/                        # Game server code
+├── server/                        # Game server code (Go)
 │   ├── README.md                 # Server setup and development guide
-│   ├── cmd/                      # Application entry points
+│   ├── go.mod                     # Go module definition (module: github.com/gabe-kai/vassalgame/server)
+│   ├── .env                       # Server environment variables (gitignored)
+│   │
+│   ├── data/                      # Data files and seed data
+│   │   └── seed/                  # Seed data for initial game content
+│   │       ├── README.md         # Seed data structure and usage guide
+│   │       ├── buildings.yaml    # Building types seed data
+│   │       └── resources.yaml    # Resource types seed data
+│   │
+│   ├── [Planned] cmd/             # Application entry points
 │   │   └── gameserver/           # Main game server executable
-│   ├── internal/                 # Internal packages (not imported by other projects)
+│   ├── [Planned] internal/        # Internal packages (not imported by other projects)
 │   │   ├── simulation/           # Simulation engine
 │   │   ├── world/                # World management
 │   │   ├── player/               # Player management
 │   │   ├── npc/                  # NPC system
 │   │   ├── economy/              # Economy system
 │   │   └── building/             # Building system
-│   ├── pkg/                      # Public packages (can be imported by other projects)
+│   ├── [Planned] pkg/            # Public packages (can be imported by other projects)
 │   │   ├── ecs/                  # Entity Component System
 │   │   ├── networking/           # Networking layer
 │   │   └── database/             # Database layer
-│   └── config/                   # Configuration files
+│   └── [Planned] config/          # Configuration files
 │
 ├── client-web/                    # Web client (low detail)
 │   ├── README.md                 # Web client setup and development guide
-│   ├── src/
+│   │
+│   ├── [Planned] src/
 │   │   ├── core/                 # Core game engine
 │   │   ├── systems/              # Game systems (LOD, rendering, etc.)
 │   │   ├── ui/                   # UI components
 │   │   └── state/                # State management
-│   ├── public/                   # Static assets
-│   └── config/                   # Configuration files
+│   ├── [Planned] public/         # Static assets
+│   └── [Planned] config/         # Configuration files
 │
 ├── client-native/                 # Native client (future - high detail)
 │   └── README.md                 # Placeholder for future native client
 │
 ├── map-generator/                  # Map generation tool (standalone or server-integrated)
 │   ├── README.md                 # Map generator setup and usage
-│   ├── generator/                # Core generation logic
-│   ├── export/                   # Export format handlers
-│   └── ui/                       # Optional UI for map generation
+│   │
+│   ├── [Planned] generator/       # Core generation logic
+│   ├── [Planned] export/          # Export format handlers
+│   └── [Planned] ui/             # Optional UI for map generation
 │
 ├── website/                       # Website (user management, docs, admin)
 │   ├── README.md                 # Website setup and development guide
-│   ├── app/                      # Next.js app directory (if using App Router)
-│   ├── pages/                    # Next.js pages (if using Pages Router)
-│   ├── components/               # React components
-│   ├── lib/                      # Utility functions
-│   ├── api/                      # API routes
-│   ├── docs/                     # Documentation content
-│   └── public/                   # Static assets
+│   ├── .env.local                 # Website environment variables (gitignored)
+│   │
+│   ├── [Planned] app/            # Next.js app directory (if using App Router)
+│   ├── [Planned] pages/          # Next.js pages (if using Pages Router)
+│   ├── [Planned] components/     # React components
+│   │   └── documentation/        # Documentation system components (viewer, editor, comments)
+│   ├── [Planned] lib/            # Utility functions
+│   │   └── markdown/             # Markdown parsing and rendering utilities
+│   ├── [Planned] api/            # API routes
+│   │   └── docs/                 # Documentation API endpoints
+│   ├── [Planned] docs/           # Static documentation content (if any)
+│   └── [Planned] public/         # Static assets
 │
-└── infrastructure/                # Infrastructure and deployment
-    ├── README.md                 # Infrastructure setup guide
-    ├── docker/                   # Dockerfiles and docker-compose.yml
-    ├── k8s/                      # Kubernetes manifests
-    ├── monitoring/               # Prometheus, Grafana configs
-    └── ci-cd/                    # CI/CD pipeline configs
+├── infrastructure/                # Infrastructure and deployment
+│   ├── README.md                 # Infrastructure setup guide
+│   ├── docker-compose.yml        # Docker Compose configuration (PostgreSQL 16, Redis 7, pgAdmin, Redis Commander)
+│   ├── init-db/                  # Database initialization scripts (mounted to PostgreSQL container)
+│   │
+│   ├── [Planned] docker/         # Dockerfiles
+│   ├── [Planned] k8s/            # Kubernetes manifests
+│   ├── [Planned] monitoring/     # Prometheus, Grafana configs
+│   └── [Planned] ci-cd/          # CI/CD pipeline configs
+│
+└── [Root] .env                    # Root environment variables (gitignored, for shared config)
 ```
+
+**Note**: Files marked `[Planned]` are directories that will be created during Phase 1 implementation. Files marked `[Root]` are at the project root level. `.env` files are gitignored and exist for local development.
 
 ## Design Principles
 
@@ -234,74 +274,41 @@ TheVassalGame/
 ### Map Generation System
 - **Planet Representation**: Icosahedron-based spherical planet (subdivided for detail)
 - **LOD System**: Multiple detail levels from planet-scale (low detail) to 1-meter resolution
-- **Tile System**: Zoomable map tiles that increase detail as needed
+- **Tile System**: Zoomable map tiles that increase detail as needed (tiles subdivided to 1-2m edge faces)
+- **Planet Management**: Admin/StoryTeller interface for creating and modifying planets
+- **Geography Presets**: Pangaea, few large continents, many small continents, archipelago, custom
+- **Terrain Controls**: Sea level (land-sea ratio), mountain heights, ocean depths, terrain roughness
+- **Documentation Integration**: Each planet automatically gets a public documentation section
 - **Export Format**: Standardized format for server and client consumption
 - **Generation Tool**: Standalone application or integrated into server
 - **Coordinate System**: Maps to existing 64-bit integer world coordinate system
 
 ## Development Phases
 
-### Phase 1: Foundation (Current)
-- Basic server architecture
-- Simple web client (low detail)
-- World chunking system
-- Basic player movement
-- Minimal NPC system
+See `docs/design-document.md` for detailed phase breakdown. Current focus: **Phase 1 - Foundation**.
 
-### Phase 2: Core Gameplay
-- Building system
-- Resource management
-- Basic NPC behaviors
-- Trade system foundation
-
-### Phase 3: Polish & Scale
-- Performance optimization
-- Advanced NPC behaviors
-- Social features
-- Website integration
-
-### Phase 4: High-End Client
-- Native client development
-- Advanced graphics
-- Enhanced features
-
-## Important Notes
+## Development Guidelines
 
 ### When Starting Development
-1. Always check this file (PROJECT.md) for context
-2. Review relevant docs/ files for detailed specifications
-3. Follow the design principles above
-4. Maintain server authority - no client-side game logic
-5. Keep performance in mind (tens of thousands of NPCs)
+1. Review this file (PROJECT.md) for essential context
+2. Check relevant `docs/` files for detailed specifications
+3. Follow all design principles above
+4. **Remember**: Docker PostgreSQL uses port 5433 (see Quick Reference below)
+
+### Maintaining Project File Structure
+**Important**: Keep the "Project File Structure" section in this file up to date. Update it:
+- When files are created or deleted
+- When files are significantly altered (structure changes)
+- **During each pre-commit check** (before committing code)
+
+This ensures the file structure remains accurate for future development sessions and onboarding.
 
 ### When Adding Features
-- Consider scalability (will this work with 1000+ players?)
-- Think about spatial partitioning (does it fit chunk system?)
-- Maintain separation of concerns
+- Consider scalability (1000+ players)
+- Think about spatial partitioning (chunk system)
+- Maintain server authority (no client-side game logic)
 - Validate all inputs on server
 - Use interest management for updates
-
-### Code Organization
-- Server: Keep simulation logic separate from networking
-- Client: Keep rendering separate from game state
-- Website: Keep API separate from frontend
-- Use clear package/module boundaries
-
-### Code Quality Requirements
-- **Testing**: Write tests for all new code
-  - No function or method should be committed without tests
-  - Test edge cases and error conditions
-  - Maintain or improve test coverage
-- **Documentation**: Document all code
-  - Functions and methods: purpose, parameters, returns, side effects
-  - Complex logic: explain the algorithm or approach
-  - Types/interfaces: describe their purpose and usage
-- **Pre-Commit**: Run checks before every commit
-  - Execute test suite: `npm test`, `go test`, etc.
-  - Run linters: ensure code style compliance
-  - Check formatting: ensure consistent code style
-  - Verify compilation: ensure code builds successfully
-  - **DO NOT skip these checks** - they catch issues early
 
 ## Quick Reference
 
@@ -309,9 +316,12 @@ TheVassalGame/
 - **PROJECT.md** (this file): Entry point, context, principles
 - **docs/design-document.md**: Overall design and tech stack
 - **docs/architecture.md**: Detailed technical architecture
+- **docs/workflows.md**: Game flows and component workflows (registration, gameplay, quests, etc.)
 - **docs/database-schema.md**: Database schema and tables
 - **docs/networking-protocol.md**: Communication protocol
 - **docs/api-specification.md**: Website API endpoints
+- **docs/building-types-reference.md**: Building types reference and design documentation
+- **docs/resources-reference.md**: Resource types and production chains reference
 
 ### Key Decisions
 - **Server Language**: Go (primary), Rust (alternative)
@@ -321,6 +331,12 @@ TheVassalGame/
 - **Chunk Size**: 1km²
 - **Tick Rate**: 30-60 TPS
 - **NPC Scale**: Tens of thousands per shard
+
+### Development Environment
+- **Docker PostgreSQL**: Port 5433 (external) - avoids conflicts with local PostgreSQL on 5432
+- **Docker Redis**: Port 6379 (standard)
+- **Database**: `localhost:5433`, user: `vassalgame_user`, password: `vassalgame_dev_password`
+- **All `.env` files use `DB_PORT=5433`** for Docker PostgreSQL
 
 ### Common Patterns
 - **ECS**: Entity Component System for NPCs
@@ -333,6 +349,5 @@ TheVassalGame/
 
 ---
 
-**Last Updated**: 2024-01-15
 **Current Phase**: Phase 1 - Foundation
 

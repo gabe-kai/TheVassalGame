@@ -40,7 +40,7 @@ docker-compose down -v
 ```
 
 **Services included:**
-- **PostgreSQL 16** on port 5432
+- **PostgreSQL 16** on port 5433 (external, to avoid conflicts with local PostgreSQL on 5432)
 - **Redis 7** on port 6379
 - **pgAdmin** on port 5050 (optional, for database management)
 - **Redis Commander** on port 8082 (optional, for Redis management)

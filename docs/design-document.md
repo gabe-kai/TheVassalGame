@@ -4,6 +4,12 @@
 
 TheVassalGame is a persistent-world 4x RTS game inspired by Warcraft and Command & Conquer, with city simulation and tower defense elements. The game features a massive world (up to 4x Earth size), continuous server-side simulation, and supports multiple client detail levels.
 
+### Game World Context
+
+The planet has been slow-terraformed for millions of years inside a time-dilation field and is ready for colonization. The biosphere, flora, and fauna were engineered by Imperial Cultivators, and one native species was uplifted to sapience. Players are promising examples of this uplifted species competing to become magistrates of territories, with the goal of developing the best territory and generating/refining the most mana. The winner becomes the planet's ruler, and refined mana powers planetary core upgrades and a dimensional portal for colonists.
+
+**Note:** Additional lore and world-building details are documented in the public documentation system (lore articles). See `PROJECT.md` for the core background summary.
+
 ### Core Gameplay
 
 - **Primary Loop**: Resource management and building
