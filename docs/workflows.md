@@ -1,5 +1,32 @@
 # TheVassalGame - Workflows and Game Flows
 
+## Table of Contents
+- [Overview](#overview)
+- [User Registration and Authentication Flow](#user-registration-and-authentication-flow)
+- [New Player Workflow](#new-player-workflow)
+- [Planet Management Workflow](#planet-management-workflow)
+- [Territory Generation Details](#territory-generation-details)
+- [Territory Expansion Flow](#territory-expansion-flow)
+- [Game Data Management Workflow](#game-data-management-workflow)
+- [Building Placement Workflow](#building-placement-workflow)
+- [Building Management Flow](#building-management-flow)
+  - [Building Maintenance](#building-maintenance)
+  - [Worker Assignment](#worker-assignment)
+  - [Passive Resource Generation](#passive-resource-generation)
+  - [Building Relocation](#building-relocation)
+  - [Building Demolition](#building-demolition)
+  - [Building Functionality Check](#building-functionality-check)
+  - [Building Tier Upgrades](#building-tier-upgrades)
+  - [Signature Addition Construction](#signature-addition-construction)
+  - [Tier and Signature Addition Management](#tier-and-signature-addition-management)
+- [District Formation](#district-formation)
+- [Supply Chain Proximity Bonuses](#supply-chain-proximity-bonuses)
+- [NPC Relationships and Events](#npc-relationships-and-events)
+  - [NPC Relationship System](#npc-relationship-system)
+  - [NPC Event Journal](#npc-event-journal)
+  - [Personality Trait Derivation](#personality-trait-derivation)
+  - [Random Events](#random-events)
+
 ## Overview
 
 This document describes the user-facing workflows and system flows for TheVassalGame. It covers how users interact with the system, how components work together, and the step-by-step processes for key features.
@@ -1387,6 +1414,201 @@ This document describes the user-facing workflows and system flows for TheVassal
    - Website displays articles to users
    - Game client can optionally fetch lore articles
    - In-game events reference documentation articles
+
+## NPC Relationships and Events
+
+### NPC Relationship System
+
+NPCs form relationships with each other and with buildings through interactions. These relationships affect behavior, decision-making, and reactions to events.
+
+#### 1. **Initial Relationship Creation**
+   - When NPCs first interact, a relationship record is created
+   - Initial relationship values start at 0.0 (neutral)
+   - Relationship type is determined by context:
+     - Work colleagues: `colleague`
+     - Social interactions: `friend` or `neutral`
+     - Building visits: `patron` or `frequent_visitor`
+   - First interaction timestamp recorded
+   - Interaction count initialized to 1
+
+#### 2. **Relationship Updates During Interactions**
+   - Each interaction between NPCs can modify relationship values
+   - Positive interactions (helping, sharing, working together) increase relationship value
+   - Negative interactions (conflict, competition, harm) decrease relationship value
+   - Relationship history entry created for each change
+   - Trust and familiarity increase with repeated positive interactions
+   - Trust decreases with negative interactions
+   - Familiarity increases with any interaction (positive or negative)
+
+#### 3. **Relationship Value Calculation**
+   - Relationship value: -100.0 (hostile) to +100.0 (very friendly)
+   - Trust level: 0.0 to 1.0 (how much NPC trusts target)
+   - Familiarity: 0.0 to 1.0 (how well NPC knows target)
+   - Values decay slowly over time if no interactions occur
+   - Strong relationships (high value) decay more slowly than weak ones
+
+#### 4. **Building Relationships**
+   - NPCs form relationships with buildings they visit frequently
+   - Working at a building creates `employee` relationship
+   - Visiting a building regularly creates `patron` or `frequent_visitor` relationship
+   - Building relationships affect NPC preferences:
+     - NPCs prefer to visit buildings they have positive relationships with
+     - NPCs avoid buildings with negative relationships
+     - High relationship with building increases NPC satisfaction
+
+#### 5. **Relationship Impact on Behavior**
+   - NPCs prefer to interact with NPCs they have positive relationships with
+   - NPCs avoid or react negatively to NPCs with negative relationships
+   - High trust levels make NPCs more likely to:
+     - Share information
+     - Help in conflicts
+     - Form alliances
+     - Accept advice
+   - Low trust levels make NPCs:
+     - Suspicious
+     - Unlikely to help
+     - More likely to conflict
+
+### NPC Event Journal
+
+NPCs maintain a journal of significant events in their lives. Events affect relationships, personality, and future behavior.
+
+#### 1. **Event Creation**
+   - Events are created automatically by the simulation system
+   - Events can be triggered by:
+     - NPC interactions (social, work, conflict)
+     - Work activities (job started, completed, promotion)
+     - Random events (discovery, accident, opportunity)
+     - Player actions (building construction, territory changes)
+     - System events (festivals, celebrations, disasters)
+   - Each event has:
+     - Type (interaction, work, social, random, etc.)
+     - Severity (minor, normal, significant, major, life_changing)
+     - Title and description
+     - Location (building, territory, world coordinates)
+     - Related NPCs and buildings
+     - Relationship impacts
+     - Personality impacts
+
+#### 2. **Event Severity and Impact**
+   - **Minor Events**: Routine daily activities, minor conversations
+     - Small relationship adjustments (0-2 points)
+     - Minimal personality impact
+   - **Normal Events**: Regular work, standard interactions
+     - Moderate relationship adjustments (2-5 points)
+     - Small personality adjustments
+   - **Significant Events**: Major achievements, friendships formed
+     - Larger relationship adjustments (5-15 points)
+     - Notable personality adjustments
+   - **Major Events**: Promotions, major conflicts, relationship milestones
+     - Large relationship adjustments (15-30 points)
+     - Significant personality adjustments
+   - **Life-Changing Events**: Death of friend, major discovery, career change
+     - Massive relationship adjustments (30-50+ points)
+     - Major personality shifts
+
+#### 3. **Event Relationship Impacts**
+   - Events automatically update relationship values
+   - Relationship impacts are stored in event's `relationship_impacts` JSONB
+   - Example: "Helped NPC during conflict" → +10 relationship value
+   - Example: "Competed for same job" → -5 relationship value
+   - Relationship history records track all changes
+   - Multiple NPCs can be affected by the same event
+
+#### 4. **Event Personality Impacts**
+   - Events slowly adjust personality traits over time
+   - Personality impacts are stored in event's `personality_impact` JSONB
+   - Example: "Helped friend in need" → `{"friendly": 0.02, "loyal": 0.01}`
+   - Example: "Was betrayed" → `{"trusting": -0.03, "cautious": 0.02}`
+   - Personality traits are recalculated periodically from event history
+   - Major events have larger personality impacts than minor events
+
+#### 5. **Event Journal Queries**
+   - NPCs can query their event history
+   - Events can be filtered by:
+     - Type
+     - Severity
+     - Time range
+     - Importance
+     - Related NPCs or buildings
+   - Most important/recent events are prioritized in queries
+   - Events are never deleted (act as permanent journal)
+
+### Personality Trait Derivation
+
+Personality traits are derived from an NPC's event history and relationships. Traits influence behavior and reactions.
+
+#### 1. **Personality Trait Calculation**
+   - Traits are calculated periodically (daily or weekly)
+   - Calculation analyzes:
+     - Recent events (last 30-90 days weighted more heavily)
+     - Relationship history patterns
+     - Event frequency and types
+     - Major life events
+   - Traits are stored as JSONB: `{"friendly": 0.7, "cautious": 0.4, "ambitious": 0.6}`
+   - Trait values range from 0.0 to 1.0
+   - Traits are normalized to prevent extreme values
+
+#### 2. **Common Personality Traits**
+   - **Social Traits**: friendly, introverted, charismatic, antisocial
+   - **Behavioral Traits**: cautious, reckless, patient, impulsive
+   - **Work Traits**: ambitious, lazy, diligent, perfectionist
+   - **Emotional Traits**: optimistic, pessimistic, resilient, fragile
+   - **Trust Traits**: trusting, suspicious, loyal, treacherous
+
+#### 3. **Personality Impact on Behavior**
+   - High `friendly` trait: NPCs more likely to initiate social interactions
+   - High `cautious` trait: NPCs avoid risky situations, prefer familiar locations
+   - High `ambitious` trait: NPCs seek promotions, take on challenging work
+   - High `trusting` trait: NPCs form relationships quickly, believe others
+   - Low `trusting` trait: NPCs are suspicious, slow to form relationships
+   - Personality traits affect:
+     - Job preferences
+     - Building visit frequency
+     - Social interaction frequency
+     - Reaction to events
+     - Decision-making
+
+#### 4. **Personality Evolution**
+   - Personality traits evolve slowly over time
+   - Major events cause significant shifts
+   - Consistent patterns in events reinforce traits
+   - Traits can change completely over NPC's lifetime
+   - Recent events have more weight than old events
+
+### Random Events
+
+Random events provide variety and unpredictability to NPC lives, creating opportunities for relationship changes and personality development.
+
+#### 1. **Random Event Generation**
+   - Random events are generated periodically (daily or weekly per NPC)
+   - Event probability is affected by:
+     - NPC's current location
+     - NPC's relationships
+     - NPC's personality traits
+     - Building types nearby
+     - Time of day/season
+   - Events are marked with `is_random_event = TRUE`
+
+#### 2. **Random Event Types**
+   - **Discovery Events**: Found valuable item, discovered new location, learned something new
+   - **Opportunity Events**: Job offer, chance encounter, invitation to event
+   - **Accident Events**: Minor injury, lost item, mishap
+   - **Social Events**: Unexpected meeting, chance conversation, shared experience
+   - **Work Events**: Unexpected work opportunity, workplace incident, recognition
+
+#### 3. **Random Event Impact**
+   - Random events create relationship changes
+   - Events involving multiple NPCs affect all participants
+   - Events can trigger personality adjustments
+   - Events create memorable moments in NPC's journal
+   - Events can lead to new relationships or deepen existing ones
+
+#### 4. **Player Influence on Random Events**
+   - Player actions can affect random event probability
+   - Building certain structures increases event types (e.g., tavern increases social events)
+   - Territory development affects event frequency
+   - Player can trigger specific events through StoryTeller interface
 
 ---
 
