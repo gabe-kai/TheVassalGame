@@ -1,5 +1,18 @@
 # Resources Reference
 
+## Table of Contents
+- [Resource Categories](#resource-categories)
+- [Resource Production Chains](#resource-production-chains)
+  - [Wood & Timber Chain](#wood--timber-chain)
+  - [Stone & Masonry Chain](#stone--masonry-chain)
+  - [Metal & Alloy Chain](#metal--alloy-chain)
+  - [Essence & Qi Chain](#essence--qi-chain)
+  - [Food Chain](#food-chain)
+  - [Herb & Alchemy Chain](#herb--alchemy-chain)
+  - [Water Chain](#water-chain)
+  - [Commerce & Prestige Chain](#commerce--prestige-chain)
+  - [Beast & Hunting Chain](#beast--hunting-chain)
+
 This document catalogs all resources in the game, their sources, production chains, and uses. Resources flow from raw materials through various processing stages to create refined products.
 
 ## Resource Categories

@@ -86,7 +86,8 @@ TheVassalGame/
 │   ├── networking-protocol.md     # Client-server communication protocol specification
 │   ├── api-specification.md       # Website REST API endpoints
 │   ├── building-types-reference.md # Building types reference and design documentation
-│   └── resources-reference.md     # Resource types and production chains reference
+│   ├── resources-reference.md     # Resource types and production chains reference
+│   └── species-reference.md       # Playable species and ethnicities reference
 │
 ├── server/                        # Game server code (Go)
 │   ├── README.md                 # Server setup and development guide
