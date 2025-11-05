@@ -1,5 +1,35 @@
 # TheVassalGame - API Specification
 
+## Table of Contents
+- [Overview](#overview)
+- [Base URL](#base-url)
+- [Authentication](#authentication)
+  - [Authentication Header](#authentication-header)
+  - [Token Format](#token-format)
+- [API Endpoints](#api-endpoints)
+  - [Authentication](#authentication-1)
+  - [Users](#users)
+  - [Avatars](#avatars)
+  - [Subscriptions](#subscriptions)
+  - [Trades](#trades)
+  - [Market](#market)
+  - [Documentation](#documentation)
+  - [Admin](#admin)
+  - [Planet Management](#planet-management)
+  - [Game Data Documentation (Buildings, Resources, Species)](#game-data-documentation-buildings-resources-species)
+  - [Skills Management](#skills-management)
+  - [Building Skill Mappings](#building-skill-mappings)
+  - [Building Management](#building-management)
+  - [Building Tier Upgrades](#building-tier-upgrades)
+  - [Districts & Supply Chains](#districts--supply-chains)
+  - [Territory Selection](#territory-selection)
+  - [NPC Relationships and Events](#npc-relationships-and-events)
+- [Error Responses](#error-responses)
+- [Rate Limiting](#rate-limiting)
+- [Pagination](#pagination)
+- [Webhooks](#webhooks)
+- [Versioning](#versioning)
+
 ## Overview
 
 The API specification defines the REST API endpoints for the website and web services. This API handles user management, authentication, subscription management, avatar management, documentation, and admin functions.
@@ -339,7 +369,9 @@ Create a new avatar.
 ```json
 {
   "name": "MyNewCharacter",
-  "planet_id": 1
+  "planet_id": 1,
+  "ethnicity_id": 123,   // optional
+  "mortal_class": "mortal"  // "mortal" | "cultivator" (default: mortal)
 }
 ```
 
@@ -352,6 +384,12 @@ Create a new avatar.
     "name": "MyNewCharacter",
     "planet_id": 1,
     "level": 1,
+    "mortal_class": "mortal",
+    "body": 10,
+    "mind": 10,
+    "spirit": 10,
+    "qi_pool": 0.0,
+    "qi_capacity": 5.0,
     "status": "pending",
     "territory_id": null
   }
@@ -379,6 +417,12 @@ Get avatar details.
   "name": "MyCharacter",
   "level": 15,
   "experience": 50000,
+  "mortal_class": "mortal",
+  "body": 12,
+  "mind": 11,
+  "spirit": 10,
+  "qi_pool": 2.0,
+  "qi_capacity": 5.0,
   "world_x": 12345,
   "world_y": 67890,
   "region_id": 1,
@@ -429,6 +473,46 @@ Update avatar (limited fields).
 - `401 Unauthorized`: Not authenticated
 - `403 Forbidden`: Avatar doesn't belong to user
 - `404 Not Found`: Avatar not found
+
+#### Character Stats Schema
+
+Mortal (default):
+```json
+{
+  "mortal_class": "mortal",
+  "body": 10,
+  "mind": 10,
+  "spirit": 10,
+  "qi_pool": 0.0,
+  "qi_capacity": 5.0
+}
+```
+
+Cultivator (expanded):
+```json
+{
+  "mortal_class": "cultivator",
+  "body": 12,
+  "mind": 11,
+  "spirit": 14,
+  "strength": 12,
+  "endurance": 13,
+  "agility": 11,
+  "speed": 10,
+  "vitality": 12,
+  "intellect": 11,
+  "perception": 13,
+  "willpower": 14,
+  "charisma": 9,
+  "focus": 12,
+  "spirit_power": 14,
+  "resonance": 12,
+  "clarity": 13,
+  "attunement": 11,
+  "qi_pool": 24.0,
+  "qi_capacity": 60.0
+}
+```
 
 #### DELETE /avatars/{avatar_id}
 
@@ -1605,9 +1689,9 @@ Get planet documentation section (public endpoint).
 
 **Note:** Each planet automatically has a documentation section created. StoryTellers/Admins can edit this documentation.
 
-### Game Data Documentation (Buildings, Resources, Species)
+### Game Data Documentation (Buildings, Resources, Species, Skills)
 
-The public documentation system automatically syncs with game database tables for buildings, resources, and species. Each entity automatically gets a documentation article that can be viewed and edited.
+The public documentation system automatically syncs with game database tables for buildings, resources, species, and skills. Each entity automatically gets a documentation article that can be viewed and edited.
 
 #### GET /docs/buildings
 
@@ -1688,6 +1772,11 @@ Get building type details and documentation (public endpoint).
   },
   "mana_generation": 5.0,
   "status": "active",
+  "skills": {
+    "required": ["construction"],
+    "recommended": ["logistics"],
+    "employment": ["administration"]
+  },
   "doc_article": {
     "slug": "building-qi-refinery",
     "title": "Building: Qi Refinery",
@@ -2153,6 +2242,17 @@ Get species details and documentation (public endpoint).
   "habitat": "temperate",
   "diet": "omnivore",
   "status": "active",
+  "ethnicities": [
+    {
+      "id": 101,
+      "name": "Falcon",
+      "slug": "avian-falcon",
+      "description": "Swift, sharp-eyed, and disciplined",
+      "qi_themes": ["wind", "precision", "speed"],
+      "stat_modifiers": {"perception": 2, "speed": 2, "willpower": -1},
+      "status": "active"
+    }
+  ],
   "doc_article": {
     "slug": "species-uplifted-terran",
     "title": "Species: Uplifted Terran",
@@ -2295,7 +2395,519 @@ Permanently delete a species (Admin only).
 **Permissions:**
 - Admins only
 
+#### POST /admin/species-ethnicities
+
+Create a new species ethnicity (Admin/StoryTeller only).
+
+**Request:**
+```json
+{
+  "species_id": 1,
+  "name": "Falcon",
+  "slug": "avian-falcon",
+  "description": "Swift, sharp-eyed, and disciplined",
+  "qi_themes": ["wind", "precision", "speed"],
+  "stat_modifiers": {"perception": 2, "speed": 2, "willpower": -1}
+}
+```
+
+**Response:**
+```json
+{
+  "id": 101,
+  "species_id": 1,
+  "name": "Falcon",
+  "slug": "avian-falcon",
+  "status": "active",
+  "created_at": "2024-01-21T16:00:00Z"
+}
+```
+
+**Status Codes:**
+- `201 Created`: Ethnicity created
+- `400 Bad Request`: Invalid input
+- `409 Conflict`: Name/slug already exists for species
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
+
+#### PUT /admin/species-ethnicities/{id}
+
+Update a species ethnicity (Admin/StoryTeller only).
+
+**Request:**
+```json
+{
+  "description": "Updated description",
+  "qi_themes": ["wind", "precision", "focused_strikes"],
+  "stat_modifiers": {"perception": 2, "speed": 1, "willpower": 1}
+}
+```
+
+**Response:**
+```json
+{
+  "id": 101,
+  "name": "Falcon",
+  "updated_at": "2024-01-21T17:00:00Z"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Updated successfully
+- `404 Not Found`: Ethnicity not found
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
+
+#### POST /admin/species-ethnicities/{id}/archive
+
+Archive a species ethnicity (Admin/StoryTeller only).
+
+**Response:**
+```json
+{
+  "id": 101,
+  "status": "archived",
+  "archived_at": "2024-01-21T18:00:00Z"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Ethnicity archived
+- `404 Not Found`: Ethnicity not found
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
+
+#### DELETE /admin/species-ethnicities/{id}
+
+Permanently delete a species ethnicity (Admin only).
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Species ethnicity deleted successfully"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Ethnicity deleted
+- `404 Not Found`: Ethnicity not found
+- `400 Bad Request`: Cannot delete if referenced by avatars/NPCs
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin
+
 **Warning:** Cannot delete if any NPCs of this species exist in the game world.
+
+### Skills Management
+
+#### GET /docs/skills
+
+List all skills (public endpoint).
+
+**Query Parameters:**
+- `category`: Filter by category ('core', 'gathering', 'processing', 'arcane', 'civic', 'combat') - optional
+- `status`: Filter by status ('active', 'archived') - default: 'active' for public, 'all' for StoryTellers/Admins
+- `limit`: Number of results (default: 50, max: 100)
+- `offset`: Pagination offset (default: 0)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Construction",
+      "slug": "construction",
+      "category": "core",
+      "description": "Ability to build and construct structures",
+      "primary_attributes": {"strength": 0.5, "focus": 0.5},
+      "derived_influences": {
+        "build_time_multiplier": -0.01,
+        "cost_reduction": 0.005
+      },
+      "status": "active"
+    }
+  ],
+  "pagination": {
+    "total": 28,
+    "limit": 50,
+    "offset": 0,
+    "has_more": false
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+
+**Permissions:**
+- Public: Can view active skills
+- StoryTellers/Admins: Can view all skills including archived
+
+#### GET /docs/skills/{slug}
+
+Get skill details and documentation (public endpoint).
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "Construction",
+  "slug": "construction",
+  "category": "core",
+  "description": "Ability to build and construct structures",
+  "detailed_description": "Construction skill affects build time and resource costs...",
+  "primary_attributes": {
+    "strength": 0.5,
+    "focus": 0.5
+  },
+  "derived_influences": {
+    "build_time_multiplier": -0.01,
+    "cost_reduction": 0.005
+  },
+  "status": "active",
+  "doc_article": {
+    "slug": "skill-construction",
+    "title": "Skill: Construction",
+    "content": "# Construction\n\n...",
+    "category": "reference"
+  },
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-20T15:30:00Z"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Skill not found
+
+**Permissions:**
+- Public: Can view active skills
+- StoryTellers/Admins: Can view all skills including archived
+
+#### POST /admin/skills
+
+Create a new skill (Admin/StoryTeller only).
+
+**Request:**
+```json
+{
+  "name": "Advanced Alchemy",
+  "category": "arcane",
+  "description": "Advanced alchemical techniques",
+  "primary_attributes": {"intellect": 0.6, "focus": 0.4},
+  "derived_influences": {
+    "potion_potency": 0.02,
+    "yield_bonus": 0.01
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "id": 30,
+  "name": "Advanced Alchemy",
+  "slug": "advanced-alchemy",
+  "category": "arcane",
+  "status": "active",
+  "doc_article": {
+    "slug": "skill-advanced-alchemy",
+    "title": "Skill: Advanced Alchemy"
+  },
+  "created_at": "2024-01-21T16:00:00Z"
+}
+```
+
+**Status Codes:**
+- `201 Created`: Skill created, documentation article auto-generated
+- `400 Bad Request`: Invalid input
+- `409 Conflict`: Name or slug already exists
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
+
+**Permissions:**
+- Admins and StoryTellers only
+
+#### PUT /admin/skills/{id}
+
+Update skill (Admin/StoryTeller only).
+
+**Request:**
+```json
+{
+  "description": "Updated description",
+  "primary_attributes": {"intellect": 0.7, "focus": 0.3},
+  "derived_influences": {
+    "potion_potency": 0.025,
+    "yield_bonus": 0.015
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "id": 30,
+  "name": "Advanced Alchemy",
+  "updated_at": "2024-01-21T17:00:00Z",
+  "updated_by": {
+    "id": 5,
+    "username": "storyteller1"
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Updated successfully
+- `404 Not Found`: Skill not found
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
+
+**Permissions:**
+- Admins and StoryTellers only
+
+#### POST /admin/skills/{id}/archive
+
+Archive a skill (Admin/StoryTeller only).
+
+**Response:**
+```json
+{
+  "id": 30,
+  "status": "archived",
+  "archived_at": "2024-01-21T18:00:00Z"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Skill archived
+- `404 Not Found`: Skill not found
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
+
+**Permissions:**
+- Admins and StoryTellers only
+
+#### DELETE /admin/skills/{id}
+
+Permanently delete a skill (Admin only).
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Skill deleted successfully"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Skill deleted
+- `404 Not Found`: Skill not found
+- `400 Bad Request`: Cannot delete if referenced by building skill mappings
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin
+
+**Warning:** Cannot delete if any building types or tiers reference this skill.
+
+### Building Skill Mappings
+
+#### GET /admin/buildings/{id}/skills
+
+Get all skills mapped to a building type (Admin/StoryTeller only).
+
+**Response:**
+```json
+{
+  "building_type": {
+    "id": 5,
+    "name": "Sect Hall",
+    "slug": "sect-hall"
+  },
+  "skills": {
+    "required": [
+      {
+        "id": 1,
+        "skill_id": 20,
+        "skill": {
+          "id": 20,
+          "name": "Administration",
+          "slug": "administration",
+          "category": "civic"
+        },
+        "relation": "required",
+        "notes": "Required for basic operations"
+      }
+    ],
+    "recommended": [
+      {
+        "id": 2,
+        "skill_id": 15,
+        "skill": {
+          "id": 15,
+          "name": "Logistics",
+          "slug": "logistics",
+          "category": "civic"
+        },
+        "relation": "recommended",
+        "notes": null
+      }
+    ],
+    "employment": [
+      {
+        "id": 3,
+        "skill_id": 20,
+        "skill": {
+          "id": 20,
+          "name": "Administration",
+          "slug": "administration",
+          "category": "civic"
+        },
+        "relation": "employment",
+        "notes": "Workers develop this skill while employed"
+      }
+    ]
+  },
+  "tier_overrides": {
+    "1": [],
+    "2": [],
+    "3": [
+      {
+        "id": 10,
+        "building_tier_id": 25,
+        "skill_id": 15,
+        "skill": {
+          "id": 15,
+          "name": "Logistics",
+          "slug": "logistics"
+        },
+        "relation": "required",
+        "notes": "Tier 3 requires Logistics in addition to Administration"
+      }
+    ],
+    "4": [],
+    "5": [],
+    "6": []
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Building type not found
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
+
+**Permissions:**
+- Admins and StoryTellers only
+
+**Note:** Response includes both building type level skills (applies to all tiers) and tier-specific overrides (from `building_tier_skills` table).
+
+#### POST /admin/buildings/{id}/skills
+
+Add or update skill mappings for a building type (Admin/StoryTeller only).
+
+**Request:**
+```json
+{
+  "skill_id": 20,
+  "relation": "employment",
+  "notes": "Workers develop Administration skill",
+  "tier_specific": false
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "mapping": {
+    "id": 3,
+    "building_type_id": 5,
+    "skill_id": 20,
+    "relation": "employment",
+    "notes": "Workers develop Administration skill"
+  },
+  "message": "Skill mapping added at building type level"
+}
+```
+
+**Status Codes:**
+- `201 Created`: Mapping created (if new)
+- `200 OK`: Mapping updated (if existing)
+- `400 Bad Request`: Invalid input
+- `404 Not Found`: Building type or skill not found
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
+
+**Permissions:**
+- Admins and StoryTellers only
+
+#### POST /admin/buildings/{id}/tiers/{tier_level}/skills
+
+Add or update tier-specific skill mapping (Admin/StoryTeller only).
+
+**Request:**
+```json
+{
+  "skill_id": 15,
+  "relation": "required",
+  "notes": "Tier 3 requires Logistics in addition to base skills"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "mapping": {
+    "id": 10,
+    "building_tier_id": 25,
+    "skill_id": 15,
+    "relation": "required",
+    "notes": "Tier 3 requires Logistics in addition to base skills"
+  },
+  "message": "Tier-specific skill mapping added"
+}
+```
+
+**Status Codes:**
+- `201 Created`: Mapping created (if new)
+- `200 OK`: Mapping updated (if existing)
+- `400 Bad Request`: Invalid input or tier level out of range (1-6)
+- `404 Not Found`: Building type, tier, or skill not found
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
+
+**Permissions:**
+- Admins and StoryTellers only
+
+**Note:** Tier-specific mappings override building type level mappings for the same skill+relation.
+
+#### DELETE /admin/buildings/{id}/skills/{skill_id}
+
+Remove a skill mapping from a building type (Admin/StoryTeller only).
+
+**Query Parameters:**
+- `relation`: Filter by relation type ('required', 'recommended', 'employment') - optional, if not provided removes all relations
+- `tier_level`: If provided, removes tier-specific mapping instead of building type level (1-6) - optional
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Skill mapping removed successfully"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Mapping removed successfully
+- `404 Not Found`: Building type, skill, or mapping not found
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
+
+**Permissions:**
+- Admins and StoryTellers only
 
 ### Building Management
 
@@ -3183,6 +3795,172 @@ Expand territory by claiming a neighboring 1-2km territory (partial ownership of
 - Player gets a percentage of the 1m tiles from the neighboring territory
 - Remaining tiles can be assigned to other players or remain unclaimed
 - Allows flexible territory expansion and strategic control
+
+### NPC Relationships and Events
+
+#### GET /game/npcs/{npc_id}/relationships
+
+Get all relationships for an NPC (Game Server API).
+
+**Query Parameters:**
+- `target_type`: Filter by target type ('npc', 'building') - optional
+- `relationship_type`: Filter by relationship type - optional
+- `min_value`: Minimum relationship value - optional
+- `max_value`: Maximum relationship value - optional
+
+**Response:**
+```json
+{
+  "npc": {
+    "id": 100,
+    "name": "Worker NPC",
+    "personality_traits": {
+      "friendly": 0.7,
+      "cautious": 0.4,
+      "ambitious": 0.6
+    }
+  },
+  "relationships": [
+    {
+      "id": 1,
+      "target_type": "npc",
+      "target_id": 101,
+      "target_name": "Friend NPC",
+      "relationship_type": "friend",
+      "relationship_value": 65.5,
+      "trust_level": 0.8,
+      "familiarity": 0.9,
+      "first_interaction_at": "2024-01-10T10:00:00Z",
+      "last_interaction_at": "2024-01-20T15:30:00Z",
+      "interaction_count": 45,
+      "notes": "Work colleagues who became close friends"
+    },
+    {
+      "id": 2,
+      "target_type": "building",
+      "target_id": 50,
+      "target_name": "Sect Hall",
+      "relationship_type": "employee",
+      "relationship_value": 40.0,
+      "trust_level": 0.6,
+      "familiarity": 0.7,
+      "first_interaction_at": "2024-01-05T08:00:00Z",
+      "last_interaction_at": "2024-01-21T09:00:00Z",
+      "interaction_count": 120,
+      "notes": "Works here daily"
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: NPC not found
+- `401 Unauthorized`: Not authenticated
+
+#### GET /game/npcs/{npc_id}/events
+
+Get event journal for an NPC (Game Server API).
+
+**Query Parameters:**
+- `event_type`: Filter by event type - optional
+- `severity`: Filter by severity - optional
+- `min_importance`: Minimum importance (0.0-1.0) - optional
+- `since`: Events since timestamp - optional
+- `limit`: Number of results (default: 50, max: 200) - optional
+- `offset`: Pagination offset - optional
+
+**Response:**
+```json
+{
+  "npc": {
+    "id": 100,
+    "name": "Worker NPC"
+  },
+  "events": [
+    {
+      "id": 500,
+      "event_type": "achievement",
+      "severity": "major",
+      "title": "Promoted to Master Craftsman",
+      "description": "After years of dedicated work, NPC was promoted to Master Craftsman at the Sect Hall.",
+      "location_type": "building",
+      "location_id": 50,
+      "related_npc_ids": [101, 102],
+      "related_building_id": 50,
+      "relationship_impacts": {
+        "101": {"change": 10.0, "reason": "Celebrated promotion together"},
+        "102": {"change": -5.0, "reason": "Competed for same promotion"}
+      },
+      "personality_impact": {
+        "ambitious": 0.05,
+        "confident": 0.03
+      },
+      "is_random_event": false,
+      "triggered_by": "work",
+      "importance": 0.8,
+      "occurred_at": "2024-01-20T14:00:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 156,
+    "limit": 50,
+    "offset": 0,
+    "has_more": true
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: NPC not found
+- `401 Unauthorized`: Not authenticated
+
+#### POST /admin/npcs/{npc_id}/events
+
+Create a manual event for an NPC (Admin/StoryTeller only).
+
+**Request:**
+```json
+{
+  "event_type": "social",
+  "severity": "significant",
+  "title": "Participated in Festival",
+  "description": "NPC attended the Spring Festival.",
+  "location_type": "building",
+  "location_id": 50,
+  "related_npc_ids": [101, 102],
+  "relationship_impacts": {
+    "101": {"change": 5.0, "reason": "Shared experience"}
+  },
+  "personality_impact": {
+    "friendly": 0.02
+  },
+  "importance": 0.6
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "event": {
+    "id": 502,
+    "npc_id": 100,
+    "title": "Participated in Festival",
+    "occurred_at": "2024-01-21T18:00:00Z"
+  },
+  "relationships_updated": 2,
+  "personality_updated": true
+}
+```
+
+**Status Codes:**
+- `201 Created`: Event created, relationships updated
+- `400 Bad Request`: Invalid input
+- `404 Not Found`: NPC not found
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
 
 #### GET /avatars/{avatar_id}/territory-tiles
 

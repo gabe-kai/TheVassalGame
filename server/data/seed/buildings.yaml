@@ -33,6 +33,9 @@ buildings:
     base_durability: 1000
     max_employment_slots: 5
     required_workers: 0
+    # NOTE: employment_skill is a READ-ONLY human-readable field for documentation purposes.
+    # The authoritative skill mappings are stored in building_skills.yaml (building_type_skills and building_tier_skills tables).
+    # This field is provided for human readability only and should not be used by the application logic.
     employment_skill: "Administration"
     
     # Tiers

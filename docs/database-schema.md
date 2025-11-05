@@ -1,5 +1,24 @@
 # TheVassalGame - Database Schema
 
+## Table of Contents
+- [Overview](#overview)
+- [Schema Design Principles](#schema-design-principles)
+- [Core Tables](#core-tables)
+  - [Users & Authentication](#users--authentication)
+  - [Game World](#game-world)
+  - [Buildings](#buildings)
+  - [Resources](#resources)
+  - [NPCs](#npcs)
+  - [Economy & Trade](#economy--trade)
+  - [Social & Communication](#social--communication)
+  - [Admin & System](#admin--system)
+  - [Documentation System](#documentation-system)
+- [Indexes & Performance](#indexes--performance)
+- [Data Partitioning Strategy](#data-partitioning-strategy)
+- [Caching Strategy (Redis)](#caching-strategy-redis)
+- [Migration Strategy](#migration-strategy)
+- [Data Retention](#data-retention)
+
 ## Overview
 
 The database uses PostgreSQL for persistent storage. The schema is designed for scalability, with support for sharding by world region. Redis is used for hot data caching and real-time state.
@@ -407,11 +426,32 @@ CREATE TABLE avatars (
     user_id BIGINT NOT NULL REFERENCES users(id),
     planet_id BIGINT NOT NULL REFERENCES planets(id), -- Planet this avatar is on
     territory_id BIGINT REFERENCES territories(id), -- Territory this avatar manages
+    ethnicity_id INTEGER REFERENCES species_ethnicities(id), -- Ethnicity of the avatar (optional at creation)
     name VARCHAR(100) NOT NULL,
     world_x BIGINT NOT NULL,
     world_y BIGINT NOT NULL,
     facing_angle REAL DEFAULT 0, -- Rotation in radians
     level INTEGER DEFAULT 1,
+    -- Character Sheet (Avatar)
+    mortal_class VARCHAR(20) DEFAULT 'mortal', -- 'mortal' | 'cultivator'
+    -- Core triad (applies to all)
+    body INTEGER DEFAULT 10,
+    mind INTEGER DEFAULT 10,
+    spirit INTEGER DEFAULT 10,
+    -- Expanded stats (used when mortal_class = 'cultivator')
+    -- Body
+    strength INTEGER, endurance INTEGER, agility INTEGER, speed INTEGER, vitality INTEGER,
+    -- Mind
+    intellect INTEGER, perception INTEGER, willpower INTEGER, charisma INTEGER, focus INTEGER,
+    -- Spirit
+    spirit_power INTEGER, resonance INTEGER, clarity INTEGER, attunement INTEGER,
+    -- Qi
+    qi_pool REAL DEFAULT 0.0, -- Current qi
+    qi_capacity REAL DEFAULT 0.0, -- Max qi capacity
+    -- Skills
+    skills JSONB, -- {"general_labor":1, "construction":2, ...}
+    uplifted_at TIMESTAMP WITH TIME ZONE, -- If first-generation uplifted
+    birthdate DATE, -- If born sapient
     experience BIGINT DEFAULT 0,
     health INTEGER NOT NULL,
     max_health INTEGER NOT NULL,
@@ -426,10 +466,12 @@ CREATE TABLE avatars (
     INDEX idx_avatars_user_id (user_id),
     INDEX idx_avatars_planet_id (planet_id),
     INDEX idx_avatars_territory_id (territory_id),
+    INDEX idx_avatars_ethnicity_id (ethnicity_id),
     INDEX idx_avatars_coords (world_x, world_y),
     INDEX idx_avatars_region_id (region_id),
     INDEX idx_avatars_chunk (chunk_x, chunk_y),
-    INDEX idx_avatars_status (status)
+    INDEX idx_avatars_status (status),
+    INDEX idx_avatars_mortal_class (mortal_class)
 );
 ```
 
@@ -586,7 +628,9 @@ CREATE TABLE building_types (
     -- Employment & Workers
     max_employment_slots INTEGER DEFAULT 0, -- Maximum number of workers this building can employ
     required_workers INTEGER DEFAULT 0, -- Minimum workers required for building to function (0 = no requirement)
-    employment_skill VARCHAR(50), -- Skill that workers develop while employed (e.g., 'Cultivation', 'Crafting')
+    -- NOTE: employment_skill field is DEPRECATED. Use building_type_skills and building_tier_skills tables for skill mappings.
+    -- This field is kept for backward compatibility but should not be used in new code.
+    employment_skill VARCHAR(50), -- [DEPRECATED] Use building_type_skills/building_tier_skills instead
     
     -- Passive Resource Generation
     passive_resources JSONB, -- Passive resource generation per day: {"mana_crystal": 10, "food": 50}
@@ -1058,6 +1102,85 @@ CREATE TABLE inventories (
 ```
 
 ### NPCs
+ 
+### Skills
+
+#### `skills`
+Defines skills used by units and buildings. Automatically synced to public documentation.
+
+```sql
+CREATE TABLE skills (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    slug VARCHAR(100) UNIQUE,
+    category VARCHAR(50) NOT NULL, -- 'core','gathering','processing','arcane','civic','combat'
+    description TEXT,
+    primary_attributes JSONB, -- ["strength","focus"]
+    derived_influences JSONB, -- {"build_time_multiplier": {"focus": -0.2}}
+    status VARCHAR(50) DEFAULT 'active',
+    archived_at TIMESTAMP WITH TIME ZONE,
+    archived_by BIGINT REFERENCES users(id),
+    created_by BIGINT REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_by BIGINT REFERENCES users(id),
+    
+    INDEX idx_skills_slug (slug),
+    INDEX idx_skills_category (category),
+    INDEX idx_skills_status (status),
+    CHECK (status IN ('active','archived'))
+);
+```
+
+#### `building_type_skills`
+Maps building types to related skills (applies to all tiers of a building type).
+
+```sql
+CREATE TABLE building_type_skills (
+    id SERIAL PRIMARY KEY,
+    building_type_id INTEGER NOT NULL REFERENCES building_types(id) ON DELETE CASCADE,
+    skill_id INTEGER NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+    relation VARCHAR(20) NOT NULL, -- 'required','recommended','employment'
+    notes TEXT,
+    
+    UNIQUE(building_type_id, skill_id, relation),
+    INDEX idx_bts_building_type_id (building_type_id),
+    INDEX idx_bts_skill_id (skill_id),
+    CHECK (relation IN ('required','recommended','employment'))
+);
+```
+
+**Building Type Skills:**
+- Skills mapped at the building type level apply to all tiers of that building
+- Used as default/fallback when no tier-specific skill mapping exists
+- Allows overriding at tier level via `building_tier_skills`
+
+#### `building_tier_skills`
+Maps specific building tiers to related skills (tier-specific overrides/additions).
+
+```sql
+CREATE TABLE building_tier_skills (
+    id SERIAL PRIMARY KEY,
+    building_tier_id INTEGER NOT NULL REFERENCES building_tiers(id) ON DELETE CASCADE,
+    skill_id INTEGER NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+    relation VARCHAR(20) NOT NULL, -- 'required','recommended','employment'
+    notes TEXT,
+    
+    UNIQUE(building_tier_id, skill_id, relation),
+    INDEX idx_bts_tier_building_tier_id (building_tier_id),
+    INDEX idx_bts_tier_skill_id (skill_id),
+    CHECK (relation IN ('required','recommended','employment'))
+);
+```
+
+**Tier-Level Skills:**
+- Tier-specific skill mappings override or supplement building type level mappings
+- Allows different skills for different tiers (e.g., Tier 1 uses Agriculture, Tier 4 adds Logistics)
+- When querying skills for a building at a specific tier:
+  1. Start with building type level skills (from `building_type_skills`)
+  2. Apply tier-specific overrides/additions (from `building_tier_skills`)
+  3. Tier-specific mappings take precedence for same skill+relation
+- If a tier has no tier-specific mappings, it inherits all building type level skills
 
 #### `npcs`
 Persistent NPC entities.
@@ -1066,6 +1189,7 @@ Persistent NPC entities.
 CREATE TABLE npcs (
     id BIGSERIAL PRIMARY KEY,
     npc_type_id INTEGER NOT NULL REFERENCES npc_types(id), -- References npc_types table
+    ethnicity_id INTEGER REFERENCES species_ethnicities(id), -- Ethnicity for sapient NPCs (NULL for non-sapient)
     owner_id BIGINT REFERENCES avatars(id), -- NULL for neutral NPCs
     world_x BIGINT NOT NULL,
     world_y BIGINT NOT NULL,
@@ -1073,10 +1197,31 @@ CREATE TABLE npcs (
     health INTEGER NOT NULL,
     max_health INTEGER NOT NULL,
     state VARCHAR(50) DEFAULT 'idle', -- 'idle', 'working', 'moving', 'fighting'
+    -- Character Sheet (NPC)
+    mortal_class VARCHAR(20) DEFAULT 'mortal', -- 'mortal' | 'cultivator'
+    -- Core triad
+    body INTEGER DEFAULT 10,
+    mind INTEGER DEFAULT 10,
+    spirit INTEGER DEFAULT 10,
+    -- Expanded stats (cultivators)
+    strength INTEGER, endurance INTEGER, agility INTEGER, speed INTEGER, vitality INTEGER,
+    intellect INTEGER, perception INTEGER, willpower INTEGER, charisma INTEGER, focus INTEGER,
+    spirit_power INTEGER, resonance INTEGER, clarity INTEGER, attunement INTEGER,
+    -- Qi
+    qi_pool REAL DEFAULT 0.0, qi_capacity REAL DEFAULT 0.0,
+    -- Skills
+    skills JSONB,
+    uplifted_at TIMESTAMP WITH TIME ZONE,
+    birthdate DATE,
     current_job_id BIGINT, -- References jobs table
     region_id BIGINT REFERENCES world_regions(id),
     chunk_x BIGINT NOT NULL,
     chunk_y BIGINT NOT NULL,
+    
+    -- Personality & Behavior
+    personality_traits JSONB, -- Derived traits from event history: {"friendly": 0.7, "cautious": 0.4, "ambitious": 0.6}
+    personality_last_updated TIMESTAMP WITH TIME ZONE, -- When personality traits were last recalculated
+    
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
@@ -1084,9 +1229,160 @@ CREATE TABLE npcs (
     INDEX idx_npcs_coords (world_x, world_y),
     INDEX idx_npcs_region_id (region_id),
     INDEX idx_npcs_chunk (chunk_x, chunk_y),
-    INDEX idx_npcs_state (state)
+    INDEX idx_npcs_state (state),
+    INDEX idx_npcs_mortal_class (mortal_class),
+    INDEX idx_npcs_ethnicity_id (ethnicity_id)
 );
 ```
+
+#### `npc_relationships`
+Tracks relationships between NPCs and with buildings. Relationships affect NPC behavior and decision-making.
+
+```sql
+CREATE TABLE npc_relationships (
+    id BIGSERIAL PRIMARY KEY,
+    npc_id BIGINT NOT NULL REFERENCES npcs(id) ON DELETE CASCADE,
+    target_type VARCHAR(50) NOT NULL, -- 'npc', 'building'
+    target_id BIGINT NOT NULL, -- ID of target NPC or building
+    relationship_type VARCHAR(50) NOT NULL, -- 'friend', 'rival', 'mentor', 'student', 'colleague', 'patron', 'frequent_visitor', 'employee', 'employer', 'neutral'
+    relationship_value REAL DEFAULT 0.0, -- -100.0 to 100.0 (negative = hostile, positive = friendly, 0 = neutral)
+    trust_level REAL DEFAULT 0.0, -- 0.0 to 1.0 (how much NPC trusts this target)
+    familiarity REAL DEFAULT 0.0, -- 0.0 to 1.0 (how well NPC knows this target)
+    first_interaction_at TIMESTAMP WITH TIME ZONE, -- When they first interacted
+    last_interaction_at TIMESTAMP WITH TIME ZONE, -- When they last interacted
+    interaction_count INTEGER DEFAULT 0, -- Total number of interactions
+    notes TEXT, -- Additional relationship context
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    UNIQUE(npc_id, target_type, target_id, relationship_type),
+    INDEX idx_npc_relationships_npc_id (npc_id),
+    INDEX idx_npc_relationships_target (target_type, target_id),
+    INDEX idx_npc_relationships_type (relationship_type),
+    INDEX idx_npc_relationships_value (relationship_value),
+    CHECK (relationship_value >= -100.0 AND relationship_value <= 100.0),
+    CHECK (trust_level >= 0.0 AND trust_level <= 1.0),
+    CHECK (familiarity >= 0.0 AND familiarity <= 1.0),
+    CHECK (target_type IN ('npc', 'building'))
+);
+```
+
+**Relationship Types:**
+- **NPC-to-NPC**: `friend`, `rival`, `mentor`, `student`, `colleague`, `neutral`
+- **NPC-to-Building**: `patron` (visits frequently), `frequent_visitor`, `employee`, `employer`, `neutral`
+
+**Relationship Values:**
+- `-100.0` to `-50.0`: Hostile (enemy)
+- `-50.0` to `-10.0`: Unfriendly (dislikes)
+- `-10.0` to `10.0`: Neutral
+- `10.0` to `50.0`: Friendly (likes)
+- `50.0` to `100.0`: Very friendly (close friend/ally)
+
+**Behavior Impact:**
+- NPCs prefer to interact with positive relationships
+- NPCs avoid or react negatively to negative relationships
+- High trust/familiarity affects NPC decision-making
+- Relationships influence NPC reactions to events
+
+#### `npc_relationship_history`
+Tracks changes to relationship values over time for analysis and personality derivation.
+
+```sql
+CREATE TABLE npc_relationship_history (
+    id BIGSERIAL PRIMARY KEY,
+    relationship_id BIGINT NOT NULL REFERENCES npc_relationships(id) ON DELETE CASCADE,
+    event_id BIGINT REFERENCES npc_events(id), -- Event that caused this change (NULL if manual/system)
+    previous_value REAL NOT NULL, -- Relationship value before change
+    new_value REAL NOT NULL, -- Relationship value after change
+    change_amount REAL NOT NULL, -- new_value - previous_value
+    change_reason TEXT, -- Why the relationship changed
+    occurred_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_npc_relationship_history_relationship_id (relationship_id),
+    INDEX idx_npc_relationship_history_event_id (event_id),
+    INDEX idx_npc_relationship_history_occurred_at (occurred_at)
+);
+```
+
+**Purpose:**
+- Track relationship evolution over time
+- Analyze patterns in NPC behavior
+- Derive personality traits from relationship changes
+- Debug and understand NPC social dynamics
+
+#### `npc_events`
+Significant events in an NPC's life that affect relationships and personality. Acts as a journal/diary.
+
+```sql
+CREATE TABLE npc_events (
+    id BIGSERIAL PRIMARY KEY,
+    npc_id BIGINT NOT NULL REFERENCES npcs(id) ON DELETE CASCADE,
+    event_type VARCHAR(50) NOT NULL, -- 'interaction', 'work', 'social', 'random', 'achievement', 'conflict', 'celebration', 'loss', 'discovery'
+    severity VARCHAR(20) DEFAULT 'normal', -- 'minor', 'normal', 'significant', 'major', 'life_changing'
+    title VARCHAR(255) NOT NULL, -- Short title/headline
+    description TEXT NOT NULL, -- Detailed description of the event
+    location_type VARCHAR(50), -- 'building', 'territory', 'world'
+    location_id BIGINT, -- ID of building/territory where event occurred
+    location_x BIGINT, -- World coordinates if no specific location
+    location_y BIGINT,
+    
+    -- Related Entities
+    related_npc_ids BIGINT[], -- Array of NPC IDs involved in this event
+    related_building_id BIGINT REFERENCES buildings(id), -- Building involved (if applicable)
+    
+    -- Relationship Impacts
+    relationship_impacts JSONB, -- {"npc_id_123": {"change": 5.0, "reason": "helped during conflict"}}
+    
+    -- Personality Impact
+    personality_impact JSONB, -- {"friendly": 0.02, "cautious": -0.01} (small adjustments to personality traits)
+    
+    -- Metadata
+    is_random_event BOOLEAN DEFAULT FALSE, -- Whether this was a random/system-generated event
+    triggered_by VARCHAR(50), -- What triggered this event: 'system', 'interaction', 'work', 'player_action', 'random'
+    importance REAL DEFAULT 0.5, -- 0.0 to 1.0 (how important this event is to the NPC's life)
+    
+    occurred_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_npc_events_npc_id (npc_id),
+    INDEX idx_npc_events_event_type (event_type),
+    INDEX idx_npc_events_severity (severity),
+    INDEX idx_npc_events_occurred_at (occurred_at),
+    INDEX idx_npc_events_importance (importance DESC),
+    INDEX idx_npc_events_related_building_id (related_building_id),
+    CHECK (severity IN ('minor', 'normal', 'significant', 'major', 'life_changing')),
+    CHECK (importance >= 0.0 AND importance <= 1.0)
+);
+```
+
+**Event Types:**
+- `interaction`: Social interaction with another NPC
+- `work`: Work-related event (job started, completed, promotion, etc.)
+- `social`: Social gathering, festival, celebration
+- `random`: Random event (found item, discovered something, etc.)
+- `achievement`: Personal achievement or milestone
+- `conflict`: Conflict or disagreement with another NPC
+- `celebration`: Celebration or positive social event
+- `loss`: Loss of someone or something important
+- `discovery`: Discovery of new information, place, or resource
+
+**Severity Levels:**
+- `minor`: Small, everyday events (minor conversation, routine work)
+- `normal`: Regular events (daily interactions, standard work)
+- `significant`: Notable events (major work achievement, friendship formed)
+- `major`: Important life events (promotion, major conflict, relationship milestone)
+- `life_changing`: Transformative events (death of friend, major discovery, career change)
+
+**Personality Impact:**
+- Events slowly adjust personality traits over time
+- Major events have larger personality impacts
+- Personality traits are recalculated periodically from event history
+- Traits influence future behavior and reactions
+
+**Relationship Impacts:**
+- Events can automatically update relationship values
+- Relationship history records track these changes
+- Multiple NPCs can be affected by the same event
 
 #### `species`
 Defines species in the game world (uplifted species, native fauna, etc.). Automatically synced to public documentation system.
@@ -1126,6 +1422,34 @@ CREATE TABLE species (
 - When species is archived, documentation is hidden but not deleted
 
 **Note:** Species are managed by Admins and StoryTellers. Changes automatically sync to the public documentation system.
+
+#### `species_ethnicities`
+Defines ethnicities belonging to a species. Each ethnicity can include qi themes and suggested stat modifiers used during avatar/NPC creation.
+
+```sql
+CREATE TABLE species_ethnicities (
+    id SERIAL PRIMARY KEY,
+    species_id INTEGER NOT NULL REFERENCES species(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(120) UNIQUE, -- URL-friendly identifier
+    description TEXT,
+    qi_themes JSONB, -- ["wind", "precision", ...]
+    stat_modifiers JSONB, -- {"strength":2, "endurance":1, ...}
+    status VARCHAR(50) DEFAULT 'active', -- 'active', 'archived'
+    archived_at TIMESTAMP WITH TIME ZONE,
+    archived_by BIGINT REFERENCES users(id),
+    created_by BIGINT REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_by BIGINT REFERENCES users(id),
+    
+    UNIQUE(species_id, name),
+    INDEX idx_species_ethnicities_species_id (species_id),
+    INDEX idx_species_ethnicities_status (status),
+    INDEX idx_species_ethnicities_slug (slug),
+    CHECK (status IN ('active', 'archived'))
+);
+```
 
 #### `npc_types`
 Defines NPC types and their properties. NPCs are instances of species.
