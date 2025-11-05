@@ -96,6 +96,8 @@ TheVassalGame/
 │   ├── combat-mechanics.md        # Combat system, techniques, weapons, ego, and AI behavior
 │   ├── territory-expansion-mechanics.md # Territory expansion, beast tides, loyalty, contested claims
 │   ├── npc-ai-behavior.md         # NPC AI, decision-making, behavior trees, and social systems
+│   ├── resource-node-mechanics.md # Resource node types, gathering, depletion, respawn mechanics
+│   ├── building-placement-mechanics.md # Building placement, footprints, doors, roads, relocation
 │   └── DOCUMENTATION_GAPS.md      # Analysis of documentation gaps and missing systems
 │
 ├── server/                        # Game server code (Go)
@@ -345,6 +347,8 @@ This ensures the file structure remains accurate for future development sessions
 - **docs/combat-mechanics.md**: Combat system, techniques, weapons, ego, and AI behavior
 - **docs/territory-expansion-mechanics.md**: Territory expansion, beast tides, loyalty, contested claims
 - **docs/npc-ai-behavior.md**: NPC AI, decision-making, behavior trees, and social systems
+- **docs/resource-node-mechanics.md**: Resource node types, gathering, depletion, respawn mechanics
+- **docs/building-placement-mechanics.md**: Building placement, footprints, doors, roads, relocation
 - **docs/DOCUMENTATION_GAPS.md**: Analysis of documentation gaps and missing systems
 
 ### Key Decisions
