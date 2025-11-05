@@ -7,6 +7,7 @@
 - [Planet Management Workflow](#planet-management-workflow)
 - [Territory Generation Details](#territory-generation-details)
 - [Territory Expansion Flow](#territory-expansion-flow)
+- [Victory Conditions and Planetary Core System](#victory-conditions-and-planetary-core-system)
 - [Game Data Management Workflow](#game-data-management-workflow)
 - [Building Placement Workflow](#building-placement-workflow)
 - [Building Management Flow](#building-management-flow)
@@ -228,35 +229,68 @@ This document describes the user-facing workflows and system flows for TheVassal
 
 ## Territory Expansion Flow
 
-### Buying Neighboring Territories
+**Note:** Detailed territory expansion mechanics are documented in `docs/territory-expansion-mechanics.md`. This section provides a high-level workflow overview.
+
+### Buying Territories
 
 1. **Territory Expansion Initiation**
    - Player wants to expand their territory
    - Player opens territory management interface
-   - System displays neighboring 1-2km territories that are available or partially available
-   - Player selects a neighboring territory to claim/expand into
+   - System displays available 1-2km territories (adjacent or non-contiguous)
+   - System shows cost, distance, terrain type, and strategic value
+   - Player selects a territory to claim
 
 2. **Territory Purchase/Claim**
-   - Player initiates purchase/claim of neighboring territory
+   - Player initiates purchase of territory
+   - System calculates cost:
+     - Base cost: 100 mana crystals
+     - Cost multiplier: 1.15 ^ (number_of_owned_territories - 1)
+     - Distance penalty: +5% per 10km (for non-contiguous)
+     - Terrain modifier: +5% to +20% based on terrain
    - System validates:
-     - Territory is adjacent to player's current territory
-     - Territory is available (not fully claimed by another player)
-     - Player has sufficient resources/permissions
-   - Player completes purchase/claim
+     - Player has sufficient mana crystals
+     - Territory is within effective control distance (if applicable)
+     - Territory is available or contestable
+   - Player confirms purchase (non-refundable)
+   - Mana crystals deducted from inventory
 
-3. **Partial Territory Assignment**
-   - System assigns a percentage of the neighboring territory's 1m tiles to the player
-   - Not all 1m tiles from the neighboring territory are assigned
-   - Player gets some percentage (e.g., 30-70%) of the 1m subtiles
-   - Remaining percentage can be assigned to other players or remain unclaimed
-   - System creates `territory_tiles` records with `owner_avatar_id` and `owned_percentage`
-   - Player's control area expands gradually
+3. **Territory Claim Initiation**
+   - Territory status changes to `claimed` (but not yet `secured`)
+   - Territory loyalty starts at 50%
+   - Beast tide defense phase begins immediately
+   - System calculates number of beast tides based on territory size and improvement rate
 
-4. **Gameplay Impact**
-   - Player can now build and operate on the newly acquired 1m tiles
-   - Player's territory extends across multiple 1-2km territory tiles
-   - Territory boundaries become more complex (not just one 1-2km square)
-   - Allows flexible expansion and strategic territory control
+4. **Beast Tide Defense Phase**
+   - First beast tide spawns 1 hour after purchase
+   - Subsequent tides spawn 2-4 hours apart
+   - Each tide spawns 3-8 beast groups at territory perimeter
+   - Player must defend territory and defeat all beast groups
+   - If any building is destroyed, defense fails for that tide
+   - If 3+ consecutive tides fail, territory is lost (no refund)
+   - All tides must be completed within 24 hours
+
+5. **Territory Securing**
+   - After all beast tides successfully defended, territory becomes `secured`
+   - Territory loyalty increases to 75%
+   - Player gains full control of territory
+   - Territory is fully assigned to player (all 1m tiles)
+
+6. **Ongoing Maintenance**
+   - Player must maintain faction character presence (avatar or NPC)
+   - Without presence, loyalty decays (1% per hour, increased by distance)
+   - Player must maintain patrols to defend against constant beast incursions
+   - If loyalty drops to 0%, territory is lost and returns to unclaimed
+
+7. **Contested Territory (if applicable)**
+   - If neighboring sect claims same territory, it becomes contested
+   - Continuous beast tide begins immediately (dangerous!)
+   - Beast waves spawn every 30-60 minutes until conflict resolved
+   - Both players can place units and buildings
+   - Both players can interfere with each other
+   - Both players must defend against continuous beast attacks
+   - First player to maintain control for 6 hours (while surviving beast tide) secures the territory
+   - Opposing player loses claim (no refund)
+   - Final beast wave spawns 1 hour after control is secured
 
 ### Planet System Notes
 
@@ -269,6 +303,161 @@ This document describes the user-facing workflows and system flows for TheVassal
   - Unique gameplay mechanics
 - **Avatar-Planet Relationship**: Avatars are linked to specific planets
 - **Multi-Planet Support**: Users may be able to create avatars on different planets (future feature)
+
+## Victory Conditions and Planetary Core System
+
+### Overview
+
+The goal of TheVassalGame is to develop a territory that enriches the planetary ambient qi, contributing to planetary core upgrades. The player whose territory enriches the most qi becomes the ruler of the planet and hosts the dimensional portal, making their city the capital.
+
+### Planetary Core System
+
+Each planet has a **planetary core** that:
+- Absorbs mana from the solar system and universe-scale mana network
+- Uses absorbed mana to maintain the planet's existence
+- Levels up when enough territories enrich their ambient qi
+- Provides benefits to all players on the planet when leveled up
+
+**Planetary Core Levels:**
+- **Level 1**: Base level - planet is stable but limited
+- **Level 2**: Improved mana availability (+10% to all territories)
+- **Level 3**: Enhanced qi flow (+20% to all territories)
+- **Level 4**: Amplified cultivation (+30% to all territories)
+- **Level 5**: Dimensional portal unlocked (100,000 people/day capacity)
+- **Level 6**: Enhanced portal (500,000 people/day capacity)
+- **Level 7**: Maximum portal (1,000,000+ people/day capacity)
+
+### Territory Qi Enrichment
+
+Territories can either **enrich** or **drain** the ambient qi in their area:
+
+**Enrichment:**
+- Buildings that add to ambient qi (Meditation Halls, Qi Condenser Spires, etc.)
+- Proper qi management and cultivation
+- Balanced development that maintains or increases ambient qi
+
+**Drain:**
+- Excessive production building operation
+- Over-exploitation of resources
+- Too many qi-consuming buildings without enrichment
+
+**Net Enrichment Calculation:**
+```
+territory_net_enrichment = sum(enriching_buildings_qi_per_day) - sum(draining_buildings_qi_per_day)
+```
+
+**Territory Enrichment Score:**
+- Each territory tracks its cumulative qi enrichment over time
+- Score = sum of daily net enrichment values (positive values only)
+- Territories with negative net enrichment contribute 0 to planetary core
+- Only positive enrichment counts toward planetary core leveling
+
+### Planetary Core Leveling
+
+The planetary core levels up when a threshold of cumulative qi enrichment is reached across all territories.
+
+**Leveling Formula:**
+```
+core_level_threshold = base_threshold * (current_level + 1)
+
+where:
+- base_threshold = 1,000,000 qi units (cumulative enrichment across all territories)
+- Level 1 → 2: Requires 2,000,000 cumulative qi enrichment
+- Level 2 → 3: Requires 3,000,000 cumulative qi enrichment
+- Level 3 → 4: Requires 4,000,000 cumulative qi enrichment
+- Level 4 → 5: Requires 5,000,000 cumulative qi enrichment (unlocks portal)
+- Level 5 → 6: Requires 6,000,000 cumulative qi enrichment
+- Level 6 → 7: Requires 7,000,000 cumulative qi enrichment
+```
+
+**Leveling Process:**
+1. Server tracks cumulative qi enrichment across all territories
+2. When threshold is reached, planetary core levels up
+3. All territories receive the bonus (immediate effect)
+4. Server broadcasts planetary core level up to all players
+5. If level 5+, dimensional portal capacity increases
+
+### Victory Conditions
+
+The game ends and a winner is determined when the **planetary core reaches Level 5** (dimensional portal unlocked).
+
+**Winner Determination:**
+- The player whose territory has **enriched the most qi** (highest cumulative enrichment score) wins
+- Cumulative enrichment = sum of all positive daily net enrichment values over time
+- Only territories with positive net enrichment are considered
+- If a player has multiple territories, their scores are summed
+
+**Winner Rewards:**
+1. **Rulership**: Winner becomes the ruler of the planet (as a vassal of the emperor)
+2. **Capital City**: Winner's primary territory becomes the capital city
+3. **Dimensional Portal Hosting**: The dimensional portal is built in the capital city
+4. **Naming Rights**: Winner can name the planet (subject to approval)
+5. **Prestige**: Winner's name is recorded in planetary history
+
+**Post-Victory:**
+- The game continues - other players can continue developing
+- The winner gains special administrative privileges
+- The dimensional portal enables new gameplay mechanics:
+  - Trade with other planets
+  - Colonist arrival events
+  - Inter-planetary resources
+- A new contest may begin for the next planet or phase
+
+### Dimensional Portal Mechanics
+
+**Portal Capacity:**
+- **Level 5**: 100,000 people per day
+- **Level 6**: 500,000 people per day
+- **Level 7**: 1,000,000+ people per day
+
+**Portal Effects:**
+- Enables trade with other planets
+- Colonists arrive periodically (NPCs, resources, events)
+- Creates new quest opportunities
+- Generates prestige for the capital city
+- Increases trade value of the capital city
+
+**Portal Operation:**
+- Portal requires mana crystals to operate
+- Daily operation cost increases with capacity
+- Portal can be upgraded by the ruler (requires planetary core level increases)
+- Portal location is permanent (built in capital city)
+
+### Contest Timeline
+
+**Contest Duration:**
+- No fixed time limit - contest ends when planetary core reaches Level 5
+- Typical duration: 3-6 months (depending on player activity)
+- Admin/StoryTeller can manually trigger victory if needed
+- Contest can be extended if planetary core leveling is too slow
+
+**Progress Tracking:**
+- Players can see:
+  - Current planetary core level
+  - Progress toward next level (percentage)
+  - Their own territory enrichment score
+  - Leaderboard of top enriching territories
+  - Time remaining (if time limit is set)
+
+### Competition Mechanics
+
+**Fair Competition:**
+- All players start with similar territory potential
+- Qi sources are randomly distributed but balanced
+- Early advantage can be overcome through strategic development
+- Multiple strategies viable (heavy enrichment, balanced, efficient)
+
+**Strategic Depth:**
+- Players must balance:
+  - Immediate resource needs (draining qi for production)
+  - Long-term enrichment (building qi-enriching structures)
+  - Territory expansion (more territory = more enrichment potential)
+  - Cultivator management (cultivators consume qi but can refine crystals)
+
+**Leaderboard:**
+- Real-time leaderboard shows top enriching territories
+- Players can see their rank and gap to leader
+- Encourages competitive play and strategic planning
 
 ## In-Game Quest Flow
 

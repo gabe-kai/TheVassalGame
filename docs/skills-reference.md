@@ -132,6 +132,12 @@ Some skills confer derived effects based on attributes. Notation examples:
   - XP: purity gains, attenuation efficiency.
 
 ## Arcane & Spiritual
+- Qi Manipulation
+  - Description: Channeling and controlling Qi for combat techniques and enhancements.
+  - Primary Attributes: spirit_power, resonance
+  - Related Buildings: Meditation Hall, Sect Hall.
+  - XP: qi techniques used, qi enhancements, technique mastery.
+
 - Inscription (Runes & Formations)
   - Description: Carving patterns, crafting cores, aligning arrays.
   - Primary Attributes: focus, clarity
@@ -176,8 +182,32 @@ Some skills confer derived effects based on attributes. Notation examples:
   - XP: morale uptime, event success.
 
 ## Combat & Defense
+- Combat
+  - Description: Basic melee and unarmed combat proficiency.
+  - Primary Attributes: strength, agility
+  - Related Buildings: Training Grounds, Sentinel Tower.
+  - XP: combat actions, successful attacks, technique execution.
+
+- Archery
+  - Description: Ranged weapon proficiency and accuracy.
+  - Primary Attributes: perception, agility
+  - Related Buildings: Training Grounds, Sentinel Tower.
+  - XP: ranged attacks, accuracy improvements.
+
+- Defense
+  - Description: Defensive techniques, blocking, and damage mitigation.
+  - Primary Attributes: endurance, willpower
+  - Related Buildings: Training Grounds, Fortified Wall.
+  - XP: blocks, damage mitigated, defensive techniques.
+
+- Stealth
+  - Description: Concealment, evasion, and silent movement.
+  - Primary Attributes: agility, perception
+  - Related Buildings: Adventurer's Guild Hall.
+  - XP: successful evasions, stealth actions, ambushes.
+
 - Martial Training
-  - Description: Melee/ranged drills, formation practice.
+  - Description: Advanced melee/ranged drills, formation practice.
   - Primary Attributes: strength, agility, willpower
   - Related Buildings: Training Grounds, Sentinel Tower.
   - XP: drill performance, mission outcomes.

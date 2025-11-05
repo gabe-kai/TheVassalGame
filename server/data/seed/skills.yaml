@@ -305,4 +305,59 @@ skills:
     derived_influences:
       repair_speed: {endurance: 0.2, strength: 0.1}
 
+  - slug: combat
+    name: Combat
+    category: combat
+    description: Basic melee and unarmed combat proficiency.
+    primary_attributes: [strength, agility]
+    related_buildings: [training_grounds, sentinel_tower]
+    xp_sources: [combat_actions, successful_attacks, technique_execution]
+    derived_influences:
+      attack_power_bonus: {strength: 0.01, agility: 0.01}
+      hit_rate: {agility: 0.2, perception: 0.1}
+
+  - slug: archery
+    name: Archery
+    category: combat
+    description: Ranged weapon proficiency and accuracy.
+    primary_attributes: [perception, agility]
+    related_buildings: [training_grounds, sentinel_tower]
+    xp_sources: [ranged_attacks, accuracy_improvements]
+    derived_influences:
+      ranged_accuracy_bonus: {perception: 0.02, agility: 0.01}
+      range_bonus: {perception: 0.1}
+
+  - slug: defense
+    name: Defense
+    category: combat
+    description: Defensive techniques, blocking, and damage mitigation.
+    primary_attributes: [endurance, willpower]
+    related_buildings: [training_grounds, fortified_wall]
+    xp_sources: [blocks, damage_mitigated, defensive_techniques]
+    derived_influences:
+      defense_bonus: {endurance: 0.01, willpower: 0.01}
+      block_chance: {endurance: 0.2, agility: 0.1}
+
+  - slug: qi_manipulation
+    name: Qi Manipulation
+    category: arcane
+    description: Channeling and controlling Qi for combat techniques and enhancements.
+    primary_attributes: [spirit_power, resonance]
+    related_buildings: [meditation_hall, sect_hall]
+    xp_sources: [qi_techniques_used, qi_enhancements, technique_mastery]
+    derived_influences:
+      qi_technique_power: {spirit_power: 0.01, resonance: 0.01}
+      qi_efficiency: {resonance: 0.02, clarity: 0.01}
+
+  - slug: stealth
+    name: Stealth
+    category: combat
+    description: Concealment, evasion, and silent movement.
+    primary_attributes: [agility, perception]
+    related_buildings: [adventurers_guild_hall]
+    xp_sources: [successful_evasions, stealth_actions, ambushes]
+    derived_influences:
+      evasion_bonus: {agility: 0.01, perception: 0.01}
+      stealth_duration: {agility: 0.2, perception: 0.1}
+
 
