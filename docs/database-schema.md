@@ -9,6 +9,7 @@
   - [Buildings](#buildings)
   - [Resources](#resources)
   - [NPCs](#npcs)
+  - [Combat & Equipment](#combat--equipment)
   - [Economy & Trade](#economy--trade)
   - [Social & Communication](#social--communication)
   - [Admin & System](#admin--system)
@@ -187,6 +188,10 @@ CREATE TABLE planets (
     generated_at TIMESTAMP WITH TIME ZONE, -- When planet was generated
     generated_by BIGINT REFERENCES users(id), -- Admin/StoryTeller who generated it
     
+    -- Planetary Core
+    core_level INTEGER DEFAULT 1, -- Planetary core level (1-7)
+    core_value REAL DEFAULT 0.0, -- Cumulative qi enrichment value (for leveling)
+    
     -- Status
     active BOOLEAN DEFAULT TRUE, -- Whether planet is available for selection
     generation_status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'generating', 'completed', 'failed'
@@ -268,6 +273,35 @@ CREATE TABLE territories (
     available BOOLEAN DEFAULT TRUE, -- Whether territory is available for selection
     claimed_by_avatar_id BIGINT REFERENCES avatars(id), -- Avatar that claimed this territory (NULL if not claimed)
     claimed_at TIMESTAMP WITH TIME ZONE,
+    secured_at TIMESTAMP WITH TIME ZONE, -- When territory was secured (after beast tides)
+    claim_status VARCHAR(50) DEFAULT 'unclaimed', -- 'unclaimed', 'claimed', 'contested', 'secured', 'feral', 'lost'
+    
+    -- Territory Loyalty
+    loyalty REAL DEFAULT 0.0, -- 0.0 to 100.0, territory loyalty percentage
+    last_faction_presence_at TIMESTAMP WITH TIME ZONE, -- Last time a faction character was present
+    loyalty_decay_rate REAL DEFAULT 1.0, -- Loyalty decay per hour (affected by distance)
+    
+    -- Beast Tide Defense
+    beast_tide_count INTEGER DEFAULT 0, -- Number of beast tides required
+    beast_tide_completed INTEGER DEFAULT 0, -- Number of beast tides completed
+    beast_tide_failures INTEGER DEFAULT 0, -- Number of failed beast tides
+    next_beast_tide_at TIMESTAMP WITH TIME ZONE, -- When next beast tide occurs
+    beast_tide_continuous BOOLEAN DEFAULT FALSE, -- True if continuous beast tide (contested territory)
+    beast_tide_continuous_until TIMESTAMP WITH TIME ZONE, -- When continuous beast tide ends (when contestation resolved)
+    
+    -- Contested Territory
+    contested_by_avatar_ids BIGINT[], -- Array of avatar IDs contesting this territory
+    contested_since TIMESTAMP WITH TIME ZONE, -- When contestation began
+    controlling_avatar_id BIGINT REFERENCES avatars(id), -- Current controlling player
+    control_started_at TIMESTAMP WITH TIME ZONE, -- When current control began
+    
+    -- Territory Purchase
+    purchase_cost_mana_crystals INTEGER, -- Mana crystals spent to purchase
+    purchase_cost_territory_number INTEGER, -- Which territory number this was (for cost scaling)
+    
+    -- Distance and Limits
+    distance_from_nearest_owned_km REAL, -- Distance from nearest owned territory
+    is_contiguous BOOLEAN DEFAULT TRUE, -- Whether territory is contiguous with owned territories
     
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -281,9 +315,15 @@ CREATE TABLE territories (
     INDEX idx_territories_subdivided (subdivided),
     INDEX idx_territories_qi_source_type (qi_source_type),
     INDEX idx_territories_coords (min_x, min_y, max_x, max_y),
+    INDEX idx_territories_claim_status (claim_status),
+    INDEX idx_territories_loyalty (loyalty),
+    INDEX idx_territories_controlling_avatar_id (controlling_avatar_id),
+    INDEX idx_territories_next_beast_tide_at (next_beast_tide_at),
     CHECK (territory_type IN ('potential', 'starting_tile', 'player_claimed')),
     CHECK (territory_preference IN ('busy', 'isolated') OR territory_preference IS NULL),
-    CHECK (qi_source_type IN ('qi_vein', 'qi_well'))
+    CHECK (qi_source_type IN ('qi_vein', 'qi_well')),
+    CHECK (claim_status IN ('unclaimed', 'claimed', 'contested', 'secured', 'feral', 'lost')),
+    CHECK (loyalty >= 0.0 AND loyalty <= 100.0)
 );
 ```
 
@@ -365,8 +405,81 @@ CREATE TABLE territory_tiles (
 
 **Note:** 
 - When a 1-2km territory is claimed, all 1m tiles within it are created with `owner_avatar_id` set to the claiming player
-- When a player expands to a neighboring 1-2km territory, only a percentage of those 1m tiles are assigned to the player
-- This allows flexible territory expansion and shared control of neighboring territories
+- When a player expands to a neighboring 1-2km territory, all 1m tiles are assigned to the player (after successful beast tide defense)
+- See `docs/territory-expansion-mechanics.md` for detailed expansion mechanics
+
+#### `territory_patrols`
+Tracks patrol assignments for territory defense against beast incursions.
+
+```sql
+CREATE TABLE territory_patrols (
+    id BIGSERIAL PRIMARY KEY,
+    territory_id BIGINT NOT NULL REFERENCES territories(id) ON DELETE CASCADE,
+    patrol_route JSONB NOT NULL, -- Route waypoints: [{"x": 100, "y": 200}, ...]
+    assigned_unit_type VARCHAR(20) NOT NULL, -- 'avatar', 'npc'
+    assigned_unit_id BIGINT NOT NULL, -- Unit ID
+    patrol_status VARCHAR(50) DEFAULT 'active', -- 'active', 'paused', 'completed', 'interrupted'
+    last_patrol_at TIMESTAMP WITH TIME ZONE, -- Last successful patrol completion
+    incursions_encountered INTEGER DEFAULT 0, -- Number of incursions encountered
+    incursions_defeated INTEGER DEFAULT 0, -- Number of incursions successfully defeated
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_territory_patrols_territory_id (territory_id),
+    INDEX idx_territory_patrols_unit (assigned_unit_type, assigned_unit_id),
+    INDEX idx_territory_patrols_status (patrol_status),
+    CHECK (assigned_unit_type IN ('avatar', 'npc')),
+    CHECK (patrol_status IN ('active', 'paused', 'completed', 'interrupted'))
+);
+```
+
+#### `beast_incursions`
+Tracks beast incursion attempts into territories.
+
+```sql
+CREATE TABLE beast_incursions (
+    id BIGSERIAL PRIMARY KEY,
+    territory_id BIGINT NOT NULL REFERENCES territories(id) ON DELETE CASCADE,
+    incursion_type VARCHAR(50) NOT NULL, -- 'tide', 'regular', 'large'
+    spawn_x BIGINT NOT NULL, -- Spawn location X
+    spawn_y BIGINT NOT NULL, -- Spawn location Y
+    beast_group_count INTEGER NOT NULL, -- Number of beast groups
+    beast_group_data JSONB NOT NULL, -- Beast group details: [{"type": "wolf", "count": 5, "level": 3}, ...]
+    status VARCHAR(50) DEFAULT 'active', -- 'active', 'defeated', 'entered_territory', 'expired'
+    detected_by_patrol_id BIGINT REFERENCES territory_patrols(id), -- Which patrol detected it
+    defeated_at TIMESTAMP WITH TIME ZONE, -- When incursion was defeated
+    entered_territory_at TIMESTAMP WITH TIME ZONE, -- When beasts entered territory (if not defeated)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_beast_incursions_territory_id (territory_id),
+    INDEX idx_beast_incursions_status (status),
+    INDEX idx_beast_incursions_created_at (created_at),
+    CHECK (incursion_type IN ('tide', 'regular', 'large')),
+    CHECK (status IN ('active', 'defeated', 'entered_territory', 'expired'))
+);
+```
+
+#### `territory_contests`
+Tracks contested territory claims between multiple players.
+
+```sql
+CREATE TABLE territory_contests (
+    id BIGSERIAL PRIMARY KEY,
+    territory_id BIGINT NOT NULL REFERENCES territories(id) ON DELETE CASCADE,
+    contesting_avatar_id BIGINT NOT NULL REFERENCES avatars(id),
+    contest_started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    contest_status VARCHAR(50) DEFAULT 'active', -- 'active', 'resolved', 'neutralized'
+    resolved_at TIMESTAMP WITH TIME ZONE, -- When contest was resolved
+    winner_avatar_id BIGINT REFERENCES avatars(id), -- Winner (if resolved)
+    control_duration_hours REAL DEFAULT 0.0, -- Hours of continuous control by current controller
+    
+    UNIQUE(territory_id, contesting_avatar_id),
+    INDEX idx_territory_contests_territory_id (territory_id),
+    INDEX idx_territory_contests_avatar_id (contesting_avatar_id),
+    INDEX idx_territory_contests_status (contest_status),
+    CHECK (contest_status IN ('active', 'resolved', 'neutralized'))
+);
+```
 
 #### `world_regions`
 Defines world regions/shards for partitioning. Regions exist within planets/territories.
@@ -448,6 +561,14 @@ CREATE TABLE avatars (
     -- Qi
     qi_pool REAL DEFAULT 0.0, -- Current qi
     qi_capacity REAL DEFAULT 0.0, -- Max qi capacity
+    -- Cultivation (for cultivators)
+    cultivation_level INTEGER DEFAULT 0, -- Current cultivation tier (0 = not yet Tier 1, 1-50)
+    cultivation_experience REAL DEFAULT 0.0, -- Progress toward next tier (0.0 to 1.0)
+    primary_attunement VARCHAR(50), -- Primary Qi attunement type (Fire, Water, Earth, Wind, etc.) - chosen at Tier 5
+    cultivation_concept TEXT, -- Personal Concept guiding cultivation path (developed at Tier 5+)
+    last_tribulation_at TIMESTAMP WITH TIME ZONE, -- When last tribulation occurred
+    tribulation_count INTEGER DEFAULT 0, -- Number of tribulations survived
+    tribulation_failures INTEGER DEFAULT 0, -- Number of failed tribulations
     -- Skills
     skills JSONB, -- {"general_labor":1, "construction":2, ...}
     uplifted_at TIMESTAMP WITH TIME ZONE, -- If first-generation uplifted
@@ -455,6 +576,21 @@ CREATE TABLE avatars (
     experience BIGINT DEFAULT 0,
     health INTEGER NOT NULL,
     max_health INTEGER NOT NULL,
+    -- Stamina (for physical techniques)
+    stamina_pool REAL DEFAULT 100.0, -- Current stamina
+    stamina_capacity REAL DEFAULT 100.0, -- Max stamina (derived from endurance + vitality)
+    -- Combat & Equipment
+    ego_score INTEGER DEFAULT 10, -- 0-100, affects behavior (especially for cultivators)
+    equipped_weapon_id BIGINT REFERENCES weapons(id),
+    equipped_armor_id BIGINT REFERENCES armor(id),
+    equipped_accessory_1_id BIGINT REFERENCES accessories(id),
+    equipped_accessory_2_id BIGINT REFERENCES accessories(id),
+    equipped_qi_focus_id BIGINT REFERENCES accessories(id), -- Cultivators only
+    -- Combat state
+    in_combat BOOLEAN DEFAULT FALSE,
+    combat_target_id BIGINT, -- Target unit ID
+    combat_target_type VARCHAR(20), -- 'avatar', 'npc', 'building'
+    last_combat_at TIMESTAMP WITH TIME ZONE,
     status VARCHAR(50) DEFAULT 'pending', -- 'pending' (not yet placed), 'active' (in world)
     region_id BIGINT REFERENCES world_regions(id),
     chunk_x BIGINT NOT NULL,
@@ -471,7 +607,11 @@ CREATE TABLE avatars (
     INDEX idx_avatars_region_id (region_id),
     INDEX idx_avatars_chunk (chunk_x, chunk_y),
     INDEX idx_avatars_status (status),
-    INDEX idx_avatars_mortal_class (mortal_class)
+    INDEX idx_avatars_mortal_class (mortal_class),
+    INDEX idx_avatars_cultivation_level (cultivation_level),
+    INDEX idx_avatars_primary_attunement (primary_attunement),
+    INDEX idx_avatars_ego_score (ego_score),
+    INDEX idx_avatars_in_combat (in_combat)
 );
 ```
 
@@ -543,6 +683,12 @@ CREATE TABLE buildings (
     region_id BIGINT REFERENCES world_regions(id),
     chunk_x BIGINT NOT NULL,
     chunk_y BIGINT NOT NULL,
+    
+    -- Combat Capabilities
+    can_attack BOOLEAN DEFAULT FALSE, -- Whether building can attack (towers, defensive structures)
+    attack_power INTEGER DEFAULT 0, -- Building attack power
+    attack_range INTEGER DEFAULT 0, -- Attack range in meters
+    defense_bonus INTEGER DEFAULT 0, -- Additional defense from building structure
     
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -1196,7 +1342,10 @@ CREATE TABLE npcs (
     facing_angle REAL DEFAULT 0,
     health INTEGER NOT NULL,
     max_health INTEGER NOT NULL,
-    state VARCHAR(50) DEFAULT 'idle', -- 'idle', 'working', 'moving', 'fighting'
+    -- Stamina (for physical techniques)
+    stamina_pool REAL DEFAULT 100.0, -- Current stamina
+    stamina_capacity REAL DEFAULT 100.0, -- Max stamina (derived from endurance + vitality)
+    state VARCHAR(50) DEFAULT 'idle', -- 'idle', 'working', 'moving', 'fighting', 'resting', 'socializing', 'eating', 'training', 'patrolling', 'seeking'
     -- Character Sheet (NPC)
     mortal_class VARCHAR(20) DEFAULT 'mortal', -- 'mortal' | 'cultivator'
     -- Core triad
@@ -1209,10 +1358,30 @@ CREATE TABLE npcs (
     spirit_power INTEGER, resonance INTEGER, clarity INTEGER, attunement INTEGER,
     -- Qi
     qi_pool REAL DEFAULT 0.0, qi_capacity REAL DEFAULT 0.0,
+    -- Cultivation (for cultivators)
+    cultivation_level INTEGER DEFAULT 0, -- Current cultivation tier (0 = not yet Tier 1, 1-50)
+    cultivation_experience REAL DEFAULT 0.0, -- Progress toward next tier (0.0 to 1.0)
+    primary_attunement VARCHAR(50), -- Primary Qi attunement type (Fire, Water, Earth, Wind, etc.) - chosen at Tier 5
+    cultivation_concept TEXT, -- Personal Concept guiding cultivation path (developed at Tier 5+)
+    last_tribulation_at TIMESTAMP WITH TIME ZONE, -- When last tribulation occurred
+    tribulation_count INTEGER DEFAULT 0, -- Number of tribulations survived
+    tribulation_failures INTEGER DEFAULT 0, -- Number of failed tribulations
     -- Skills
     skills JSONB,
     uplifted_at TIMESTAMP WITH TIME ZONE,
     birthdate DATE,
+    -- Combat & Equipment
+    ego_score INTEGER DEFAULT 10, -- 0-100, affects behavior (especially for cultivators)
+    equipped_weapon_id BIGINT REFERENCES weapons(id),
+    equipped_armor_id BIGINT REFERENCES armor(id),
+    equipped_accessory_1_id BIGINT REFERENCES accessories(id),
+    equipped_accessory_2_id BIGINT REFERENCES accessories(id),
+    equipped_qi_focus_id BIGINT REFERENCES accessories(id), -- Cultivators only
+    -- Combat state
+    in_combat BOOLEAN DEFAULT FALSE,
+    combat_target_id BIGINT, -- Target unit ID
+    combat_target_type VARCHAR(20), -- 'avatar', 'npc', 'building'
+    last_combat_at TIMESTAMP WITH TIME ZONE,
     current_job_id BIGINT, -- References jobs table
     region_id BIGINT REFERENCES world_regions(id),
     chunk_x BIGINT NOT NULL,
@@ -1231,9 +1400,131 @@ CREATE TABLE npcs (
     INDEX idx_npcs_chunk (chunk_x, chunk_y),
     INDEX idx_npcs_state (state),
     INDEX idx_npcs_mortal_class (mortal_class),
-    INDEX idx_npcs_ethnicity_id (ethnicity_id)
+    INDEX idx_npcs_ethnicity_id (ethnicity_id),
+    INDEX idx_npcs_cultivation_level (cultivation_level),
+    INDEX idx_npcs_primary_attunement (primary_attunement),
+    INDEX idx_npcs_ego_score (ego_score),
+    INDEX idx_npcs_in_combat (in_combat),
+    CHECK (state IN ('idle', 'working', 'moving', 'fighting', 'resting', 'socializing', 'eating', 'training', 'patrolling', 'seeking'))
 );
 ```
+
+### Combat & Equipment
+
+#### `techniques`
+Combat techniques that units can learn and execute.
+
+```sql
+CREATE TABLE techniques (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(120) UNIQUE,
+    description TEXT,
+    category VARCHAR(50) NOT NULL, -- 'physical', 'qi', 'hybrid'
+    tier VARCHAR(50) NOT NULL, -- 'basic', 'intermediate', 'advanced', 'master'
+    cost_type VARCHAR(20) NOT NULL, -- 'stamina', 'qi', 'hybrid'
+    cost_amount INTEGER NOT NULL,
+    damage_multiplier REAL DEFAULT 1.0,
+    range_type VARCHAR(20) NOT NULL, -- 'melee', 'short', 'medium', 'long', 'extreme'
+    range_distance INTEGER, -- in meters
+    cooldown_seconds INTEGER DEFAULT 0,
+    special_effects JSONB, -- Status effects, area of effect, etc.
+    requires_cultivation_tier INTEGER DEFAULT 0, -- 0 = mortals can learn
+    required_skill_id INTEGER REFERENCES skills(id),
+    required_skill_level INTEGER DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_techniques_category (category),
+    INDEX idx_techniques_tier (tier),
+    INDEX idx_techniques_requires_cultivation_tier (requires_cultivation_tier),
+    INDEX idx_techniques_required_skill_id (required_skill_id)
+);
+```
+
+#### `unit_techniques`
+Tracks which techniques units have learned.
+
+```sql
+CREATE TABLE unit_techniques (
+    id BIGSERIAL PRIMARY KEY,
+    unit_type VARCHAR(20) NOT NULL, -- 'avatar', 'npc'
+    unit_id BIGINT NOT NULL,
+    technique_id INTEGER NOT NULL REFERENCES techniques(id),
+    learned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    mastery_level INTEGER DEFAULT 1, -- 1-10, affects technique effectiveness
+    experience REAL DEFAULT 0.0,
+    UNIQUE(unit_type, unit_id, technique_id),
+    INDEX idx_unit_techniques_unit (unit_type, unit_id),
+    INDEX idx_unit_techniques_technique (technique_id)
+);
+```
+
+#### `weapons`
+Weapon items that can be equipped by units.
+
+```sql
+CREATE TABLE weapons (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(120) UNIQUE,
+    description TEXT,
+    weapon_type VARCHAR(50) NOT NULL, -- 'sword', 'axe', 'staff', 'spear', 'bow', 'crossbow', 'qi_projector'
+    quality_tier VARCHAR(50) NOT NULL, -- 'crude', 'standard', 'fine', 'masterwork', 'cultivator_grade'
+    attack_bonus INTEGER NOT NULL,
+    damage_multiplier REAL DEFAULT 1.0,
+    speed_modifier REAL DEFAULT 1.0, -- Multiplier to attack speed
+    range_meters INTEGER DEFAULT 2, -- Melee default
+    critical_chance_bonus REAL DEFAULT 0.0,
+    special_properties JSONB, -- Elemental damage, special effects, etc.
+    qi_enhanceable BOOLEAN DEFAULT FALSE, -- Can cultivators enhance this weapon?
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_weapons_weapon_type (weapon_type),
+    INDEX idx_weapons_quality_tier (quality_tier),
+    INDEX idx_weapons_qi_enhanceable (qi_enhanceable)
+);
+```
+
+#### `armor`
+Armor items that can be equipped by units.
+
+```sql
+CREATE TABLE armor (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(120) UNIQUE,
+    description TEXT,
+    armor_type VARCHAR(50) NOT NULL, -- 'light', 'medium', 'heavy'
+    defense_bonus INTEGER NOT NULL,
+    speed_penalty REAL DEFAULT 0.0, -- Percentage penalty
+    qi_efficiency_penalty REAL DEFAULT 0.0, -- Percentage penalty for cultivators
+    special_properties JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_armor_armor_type (armor_type)
+);
+```
+
+#### `accessories`
+Accessory items (rings, amulets, talismans, Qi focus items) that can be equipped.
+
+```sql
+CREATE TABLE accessories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(120) UNIQUE,
+    description TEXT,
+    accessory_type VARCHAR(50) NOT NULL, -- 'ring', 'amulet', 'talisman', 'qi_focus'
+    stat_bonuses JSONB, -- {"strength": 2, "qi_efficiency": 0.05}
+    special_properties JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_accessories_accessory_type (accessory_type)
+);
+```
+
+### Economy & Trade
 
 #### `npc_relationships`
 Tracks relationships between NPCs and with buildings. Relationships affect NPC behavior and decision-making.
