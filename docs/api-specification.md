@@ -23,7 +23,11 @@
   - [Building Tier Upgrades](#building-tier-upgrades)
   - [Districts & Supply Chains](#districts--supply-chains)
   - [Territory Selection](#territory-selection)
+  - [Territory Management](#territory-management)
+  - [NPC Management](#npc-management)
   - [NPC Relationships and Events](#npc-relationships-and-events)
+  - [Cultivation Actions](#cultivation-actions)
+  - [Combat & Equipment](#combat--equipment)
 - [Error Responses](#error-responses)
 - [Rate Limiting](#rate-limiting)
 - [Pagination](#pagination)
@@ -410,7 +414,7 @@ Get avatar details.
 
 **Request:** (Headers: Authorization)
 
-**Response:**
+**Response (Mortal):**
 ```json
 {
   "id": 11111,
@@ -423,6 +427,8 @@ Get avatar details.
   "spirit": 10,
   "qi_pool": 2.0,
   "qi_capacity": 5.0,
+  "stamina_pool": 100.0,
+  "stamina_capacity": 100.0,
   "world_x": 12345,
   "world_y": 67890,
   "region_id": 1,
@@ -432,6 +438,59 @@ Get avatar details.
     "lumber": 500,
     "stone_blocks": 300,
     "iron": 100
+  },
+  "created_at": "2024-01-01T00:00:00Z",
+  "last_played_at": "2024-01-15T10:30:00Z"
+}
+```
+
+**Response (Cultivator):**
+```json
+{
+  "id": 11111,
+  "name": "MyCharacter",
+  "level": 15,
+  "experience": 50000,
+  "mortal_class": "cultivator",
+  "body": 25,
+  "mind": 22,
+  "spirit": 28,
+  "strength": 24,
+  "endurance": 26,
+  "agility": 22,
+  "speed": 20,
+  "vitality": 25,
+  "intellect": 21,
+  "perception": 26,
+  "willpower": 28,
+  "charisma": 18,
+  "focus": 24,
+  "spirit_power": 28,
+  "resonance": 24,
+  "clarity": 26,
+  "attunement": 22,
+  "qi_pool": 240.0,
+  "qi_capacity": 320.0,
+  "stamina_pool": 180.0,
+  "stamina_capacity": 180.0,
+  "cultivation_level": 3,
+  "cultivation_experience": 0.65,
+  "primary_attunement": "Fire",
+  "cultivation_concept": "The Phoenix's Rebirth - Strength through destruction and renewal",
+  "last_tribulation_at": "2024-01-10T14:30:00Z",
+  "tribulation_count": 2,
+  "tribulation_failures": 0,
+  "world_x": 12345,
+  "world_y": 67890,
+  "region_id": 1,
+  "health": 250,
+  "max_health": 250,
+  "inventory": {
+    "lumber": 500,
+    "stone_blocks": 300,
+    "iron": 100,
+    "mana_crystal_low": 5,
+    "mana_crystal_mid": 2
   },
   "created_at": "2024-01-01T00:00:00Z",
   "last_played_at": "2024-01-15T10:30:00Z"
@@ -484,7 +543,9 @@ Mortal (default):
   "mind": 10,
   "spirit": 10,
   "qi_pool": 0.0,
-  "qi_capacity": 5.0
+  "qi_capacity": 5.0,
+  "stamina_pool": 100.0,
+  "stamina_capacity": 100.0
 }
 ```
 
@@ -510,7 +571,16 @@ Cultivator (expanded):
   "clarity": 13,
   "attunement": 11,
   "qi_pool": 24.0,
-  "qi_capacity": 60.0
+  "qi_capacity": 60.0,
+  "stamina_pool": 150.0,
+  "stamina_capacity": 150.0,
+  "cultivation_level": 3,
+  "cultivation_experience": 0.65,
+  "primary_attunement": "Fire",
+  "cultivation_concept": "The Phoenix's Rebirth - Strength through destruction and renewal",
+  "last_tribulation_at": "2024-01-10T14:30:00Z",
+  "tribulation_count": 2,
+  "tribulation_failures": 0
 }
 ```
 
@@ -3754,15 +3824,15 @@ Select a territory for an avatar (completes avatar setup).
 - If `preference = "isolated"`: System validates territory has no nearby players or is marked for isolated players
 - System may offer territories near established isolated players (difficult experience) if map is busy
 
-#### POST /avatars/{avatar_id}/expand-territory
+#### POST /avatars/{avatar_id}/purchase-territory
 
-Expand territory by claiming a neighboring 1-2km territory (partial ownership of 1m tiles).
+Purchase a new territory (adjacent or non-contiguous). Requires mana crystals and triggers beast tide defense.
 
 **Request:**
 ```json
 {
-  "territory_id": 5,  // Neighboring 1-2km territory to claim
-  "owned_percentage": 0.5  // Percentage of 1m tiles to assign (0.0 to 1.0)
+  "territory_id": 5,  // 1-2km territory to purchase
+  "confirm_cost": true  // Client must confirm they understand the cost is non-refundable
 }
 ```
 
@@ -3773,28 +3843,968 @@ Expand territory by claiming a neighboring 1-2km territory (partial ownership of
   "territory": {
     "id": 5,
     "name": "Eastern Hills",
-    "claimed_by_avatar_id": 22222,
-    "partial_ownership": true
+    "claim_status": "claimed",
+    "loyalty": 50.0,
+    "beast_tide_count": 5,
+    "beast_tide_completed": 0,
+    "next_beast_tide_at": "2024-01-15T11:00:00Z",
+    "purchase_cost_mana_crystals": 115,
+    "purchase_cost_territory_number": 2
   },
-  "tiles_assigned": 1250,  // Number of 1m tiles assigned to player
-  "total_tiles": 2500,  // Total 1m tiles in the 1-2km territory
-  "owned_percentage": 0.5,
-  "message": "Territory expanded. 50% of tiles assigned to your territory."
+  "mana_crystals_deducted": 115,
+  "message": "Territory purchased. Beast tide defense begins in 1 hour. You must successfully defend all beast tides to secure the territory."
 }
 ```
 
 **Status Codes:**
-- `200 OK`: Territory expansion successful
-- `400 Bad Request`: Invalid input, territory not adjacent, or insufficient resources
+- `200 OK`: Territory purchase successful
+- `400 Bad Request`: Invalid input, insufficient mana crystals, territory not available, or outside effective control distance
 - `404 Not Found`: Avatar or territory not found
 - `401 Unauthorized`: Not authenticated
 - `403 Forbidden`: Avatar doesn't belong to user
+- `409 Conflict`: Territory is already claimed or contested
 
 **Note:**
-- This endpoint allows players to expand their control area by claiming neighboring 1-2km territories
-- Player gets a percentage of the 1m tiles from the neighboring territory
-- Remaining tiles can be assigned to other players or remain unclaimed
-- Allows flexible territory expansion and strategic control
+- Cost is calculated based on number of owned territories (1.15 ^ (owned_territories - 1) × 100)
+- Distance and terrain modifiers apply for non-contiguous territories
+- Cost is non-refundable even if territory is lost
+- Beast tide defense phase begins immediately after purchase
+- Territory must be successfully defended through all beast tides to become secured
+
+#### GET /avatars/{avatar_id}/territories
+
+Get all territories owned by an avatar.
+
+**Query Parameters:**
+- `status`: Filter by claim status ('claimed', 'secured', 'feral', 'contested') - optional
+- `include_stats`: Include detailed stats (loyalty, beast tides, etc.) - default: false
+
+**Response:**
+```json
+{
+  "territories": [
+    {
+      "id": 1,
+      "name": "Starting Territory",
+      "claim_status": "secured",
+      "loyalty": 85.0,
+      "is_contiguous": true,
+      "distance_from_nearest_owned_km": 0.0,
+      "terrain_type": "plains",
+      "qi_source_type": "qi_vein",
+      "qi_source_potency": 1.0
+    },
+    {
+      "id": 5,
+      "name": "Eastern Hills",
+      "claim_status": "claimed",
+      "loyalty": 50.0,
+      "beast_tide_count": 5,
+      "beast_tide_completed": 2,
+      "next_beast_tide_at": "2024-01-15T14:30:00Z",
+      "is_contiguous": true,
+      "distance_from_nearest_owned_km": 2.5
+    }
+  ],
+  "total_territories": 2,
+  "total_secured": 1,
+  "total_claimed": 1
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Avatar doesn't belong to user
+- `404 Not Found`: Avatar not found
+
+#### GET /territories/{territory_id}
+
+Get detailed information about a territory.
+
+**Response:**
+```json
+{
+  "id": 5,
+  "name": "Eastern Hills",
+  "planet_id": 1,
+  "terrain_type": "mountain",
+  "biome_type": "alpine",
+  "qi_source_type": "qi_vein",
+  "qi_source_potency": 1.2,
+  "claimed_by_avatar_id": 22222,
+  "claim_status": "claimed",
+  "loyalty": 50.0,
+  "last_faction_presence_at": "2024-01-15T10:00:00Z",
+  "loyalty_decay_rate": 1.0,
+  "beast_tide_count": 5,
+  "beast_tide_completed": 2,
+  "beast_tide_failures": 0,
+  "beast_tide_continuous": false,
+  "next_beast_tide_at": "2024-01-15T14:30:00Z",
+  "contested_by_avatar_ids": [],
+  "controlling_avatar_id": null,
+  "purchase_cost_mana_crystals": 115,
+  "distance_from_nearest_owned_km": 2.5,
+  "is_contiguous": true,
+  "min_x": 1000,
+  "min_y": 2000,
+  "max_x": 3000,
+  "max_y": 4000
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Territory not found
+
+### Territory Management
+
+#### GET /territories/{territory_id}/beast-tides
+
+Get beast tide status and upcoming tides for a territory.
+
+**Response:**
+```json
+{
+  "territory_id": 5,
+  "beast_tide_count": 5,
+  "beast_tide_completed": 2,
+  "beast_tide_failures": 0,
+  "beast_tide_continuous": false,
+  "next_beast_tide_at": "2024-01-15T14:30:00Z",
+  "upcoming_tides": [
+    {
+      "tide_number": 3,
+      "scheduled_at": "2024-01-15T14:30:00Z",
+      "estimated_groups": 5,
+      "tide_type": "medium"
+    },
+    {
+      "tide_number": 4,
+      "scheduled_at": "2024-01-15T17:00:00Z",
+      "estimated_groups": 6,
+      "tide_type": "medium"
+    }
+  ],
+  "completed_tides": [
+    {
+      "tide_number": 1,
+      "completed_at": "2024-01-15T10:00:00Z",
+      "beast_groups_spawned": 4,
+      "beast_groups_defeated": 4,
+      "buildings_damaged": 0,
+      "defense_successful": true
+    },
+    {
+      "tide_number": 2,
+      "completed_at": "2024-01-15T12:30:00Z",
+      "beast_groups_spawned": 5,
+      "beast_groups_defeated": 5,
+      "buildings_damaged": 1,
+      "defense_successful": true
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Territory not found
+- `403 Forbidden`: Territory doesn't belong to user's avatar
+
+#### GET /territories/{territory_id}/beast-tides/{tide_id}
+
+Get detailed information about a specific beast tide.
+
+**Response:**
+```json
+{
+  "tide_id": 123,
+  "territory_id": 5,
+  "tide_number": 3,
+  "status": "scheduled",
+  "scheduled_at": "2024-01-15T14:30:00Z",
+  "started_at": null,
+  "completed_at": null,
+  "beast_groups_spawned": null,
+  "beast_groups_defeated": null,
+  "beast_group_details": null,
+  "buildings_damaged": null,
+  "defense_successful": null
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Territory or tide not found
+
+#### POST /territories/{territory_id}/beast-tides/{tide_id}/defend
+
+Report the outcome of a beast tide defense (called by game server after tide completion).
+
+**Request:**
+```json
+{
+  "beast_groups_defeated": 5,
+  "buildings_damaged": 0,
+  "defense_successful": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "tide": {
+    "tide_id": 123,
+    "status": "completed",
+    "defense_successful": true,
+    "completed_at": "2024-01-15T15:00:00Z"
+  },
+  "territory": {
+    "loyalty": 60.0,
+    "beast_tide_completed": 3,
+    "beast_tide_failures": 0
+  },
+  "message": "Beast tide successfully defended. Territory loyalty increased."
+}
+```
+
+**Status Codes:**
+- `200 OK`: Defense outcome recorded
+- `400 Bad Request`: Invalid input
+- `404 Not Found`: Territory or tide not found
+- `409 Conflict`: Tide already completed
+
+**Note:** This endpoint is primarily called by the game server. Client may call it to report defense outcomes if needed.
+
+#### GET /territories/{territory_id}/patrols
+
+Get all patrols for a territory.
+
+**Query Parameters:**
+- `status`: Filter by patrol status ('active', 'paused', 'completed', 'interrupted') - optional
+
+**Response:**
+```json
+{
+  "territory_id": 5,
+  "patrols": [
+    {
+      "id": 10,
+      "patrol_route": [
+        {"x": 1500, "y": 2500},
+        {"x": 2000, "y": 2500},
+        {"x": 2000, "y": 3000},
+        {"x": 1500, "y": 3000}
+      ],
+      "assigned_unit_type": "npc",
+      "assigned_unit_id": 100,
+      "assigned_unit_name": "Guard NPC",
+      "patrol_status": "active",
+      "last_patrol_at": "2024-01-15T12:00:00Z",
+      "incursions_encountered": 3,
+      "incursions_defeated": 3
+    }
+  ],
+  "total_patrols": 1,
+  "active_patrols": 1
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Territory not found
+- `403 Forbidden`: Territory doesn't belong to user's avatar
+
+#### POST /territories/{territory_id}/patrols
+
+Create a new patrol route for a territory.
+
+**Request:**
+```json
+{
+  "patrol_route": [
+    {"x": 1500, "y": 2500},
+    {"x": 2000, "y": 2500},
+    {"x": 2000, "y": 3000},
+    {"x": 1500, "y": 3000}
+  ],
+  "assigned_unit_type": "npc",
+  "assigned_unit_id": 100
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "patrol": {
+    "id": 11,
+    "territory_id": 5,
+    "patrol_route": [
+      {"x": 1500, "y": 2500},
+      {"x": 2000, "y": 2500},
+      {"x": 2000, "y": 3000},
+      {"x": 1500, "y": 3000}
+    ],
+    "assigned_unit_type": "npc",
+    "assigned_unit_id": 100,
+    "patrol_status": "active",
+    "created_at": "2024-01-15T13:00:00Z"
+  }
+}
+```
+
+**Status Codes:**
+- `201 Created`: Patrol created successfully
+- `400 Bad Request`: Invalid route (too few waypoints, invalid coordinates, etc.)
+- `404 Not Found`: Territory or unit not found
+- `403 Forbidden`: Territory or unit doesn't belong to user's avatar
+- `409 Conflict`: Unit already assigned to another patrol
+
+#### PUT /territories/{territory_id}/patrols/{patrol_id}
+
+Update a patrol route.
+
+**Request:**
+```json
+{
+  "patrol_route": [
+    {"x": 1600, "y": 2600},
+    {"x": 2100, "y": 2600},
+    {"x": 2100, "y": 3100},
+    {"x": 1600, "y": 3100}
+  ],
+  "patrol_status": "paused"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "patrol": {
+    "id": 11,
+    "patrol_route": [
+      {"x": 1600, "y": 2600},
+      {"x": 2100, "y": 2600},
+      {"x": 2100, "y": 3100},
+      {"x": 1600, "y": 3100}
+    ],
+    "patrol_status": "paused",
+    "updated_at": "2024-01-15T13:30:00Z"
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Patrol updated successfully
+- `400 Bad Request`: Invalid input
+- `404 Not Found`: Territory or patrol not found
+- `403 Forbidden`: Territory doesn't belong to user's avatar
+
+#### DELETE /territories/{territory_id}/patrols/{patrol_id}
+
+Delete a patrol route.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Patrol deleted successfully"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Patrol deleted successfully
+- `404 Not Found`: Territory or patrol not found
+- `403 Forbidden`: Territory doesn't belong to user's avatar
+
+#### POST /territories/{territory_id}/patrols/{patrol_id}/assign-unit
+
+Assign or reassign a unit to a patrol.
+
+**Request:**
+```json
+{
+  "assigned_unit_type": "npc",
+  "assigned_unit_id": 101
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "patrol": {
+    "id": 11,
+    "assigned_unit_type": "npc",
+    "assigned_unit_id": 101,
+    "assigned_unit_name": "Guard NPC 2",
+    "updated_at": "2024-01-15T14:00:00Z"
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Unit assigned successfully
+- `400 Bad Request`: Invalid unit type or ID
+- `404 Not Found`: Territory, patrol, or unit not found
+- `403 Forbidden`: Territory or unit doesn't belong to user's avatar
+- `409 Conflict`: Unit already assigned to another patrol
+
+#### GET /territories/{territory_id}/incursions
+
+Get beast incursions for a territory.
+
+**Query Parameters:**
+- `status`: Filter by status ('active', 'defeated', 'entered_territory', 'expired') - optional
+- `incursion_type`: Filter by type ('tide', 'regular', 'large') - optional
+- `limit`: Number of results (default: 50, max: 100)
+
+**Response:**
+```json
+{
+  "territory_id": 5,
+  "incursions": [
+    {
+      "id": 50,
+      "incursion_type": "regular",
+      "spawn_x": 1800,
+      "spawn_y": 2800,
+      "beast_group_count": 3,
+      "beast_group_data": [
+        {"type": "wolf", "count": 5, "level": 3},
+        {"type": "bear", "count": 2, "level": 4},
+        {"type": "eagle", "count": 3, "level": 2}
+      ],
+      "status": "defeated",
+      "detected_by_patrol_id": 10,
+      "defeated_at": "2024-01-15T12:15:00Z",
+      "created_at": "2024-01-15T12:10:00Z"
+    }
+  ],
+  "total_incursions": 15,
+  "active_incursions": 0,
+  "defeated_incursions": 12,
+  "entered_territory_incursions": 3
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Territory not found
+- `403 Forbidden`: Territory doesn't belong to user's avatar
+
+#### GET /territories/{territory_id}/incursions/{incursion_id}
+
+Get detailed information about a specific beast incursion.
+
+**Response:**
+```json
+{
+  "id": 50,
+  "territory_id": 5,
+  "incursion_type": "regular",
+  "spawn_x": 1800,
+  "spawn_y": 2800,
+  "beast_group_count": 3,
+  "beast_group_data": [
+    {"type": "wolf", "count": 5, "level": 3, "health": 100},
+    {"type": "bear", "count": 2, "level": 4, "health": 200},
+    {"type": "eagle", "count": 3, "level": 2, "health": 80}
+  ],
+  "status": "defeated",
+  "detected_by_patrol_id": 10,
+  "defeated_at": "2024-01-15T12:15:00Z",
+  "entered_territory_at": null,
+  "created_at": "2024-01-15T12:10:00Z"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Territory or incursion not found
+
+#### GET /territories/{territory_id}/contest
+
+Get contest status for a contested territory.
+
+**Response:**
+```json
+{
+  "territory_id": 5,
+  "claim_status": "contested",
+  "contested_by_avatar_ids": [22222, 33333],
+  "contested_since": "2024-01-15T10:00:00Z",
+  "controlling_avatar_id": 22222,
+  "control_started_at": "2024-01-15T11:30:00Z",
+  "control_duration_hours": 1.5,
+  "beast_tide_continuous": true,
+  "beast_tide_continuous_until": null,
+  "contests": [
+    {
+      "id": 1,
+      "contesting_avatar_id": 22222,
+      "contest_started_at": "2024-01-15T10:00:00Z",
+      "contest_status": "active",
+      "control_duration_hours": 1.5
+    },
+    {
+      "id": 2,
+      "contesting_avatar_id": 33333,
+      "contest_started_at": "2024-01-15T10:05:00Z",
+      "contest_status": "active",
+      "control_duration_hours": 0.0
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Territory not found
+- `409 Conflict`: Territory is not contested
+
+#### POST /territories/{territory_id}/contest/claim
+
+Claim a contested territory (join the contest).
+
+**Request:**
+```json
+{
+  "confirm_danger": true  // Must confirm understanding of continuous beast tide
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "territory": {
+    "claim_status": "contested",
+    "contested_by_avatar_ids": [22222, 33333, 44444],
+    "beast_tide_continuous": true
+  },
+  "message": "Territory contestation joined. Continuous beast tide is active."
+}
+```
+
+**Status Codes:**
+- `200 OK`: Contestation joined successfully
+- `400 Bad Request`: Invalid input or territory not available for contestation
+- `404 Not Found`: Territory not found
+- `403 Forbidden`: Cannot claim own territory
+- `409 Conflict`: Already contesting this territory
+
+#### GET /territories/{territory_id}/contest/control
+
+Get current control status for a contested territory.
+
+**Response:**
+```json
+{
+  "territory_id": 5,
+  "controlling_avatar_id": 22222,
+  "control_started_at": "2024-01-15T11:30:00Z",
+  "control_duration_hours": 1.5,
+  "hours_required_for_securing": 6.0,
+  "hours_remaining": 4.5,
+  "opposing_units_present": false,
+  "opposing_buildings_present": false,
+  "can_secure": false
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Territory not found
+- `409 Conflict`: Territory is not contested
+
+#### GET /territories/{territory_id}/loyalty
+
+Get territory loyalty status and decay information.
+
+**Response:**
+```json
+{
+  "territory_id": 5,
+  "loyalty": 75.0,
+  "last_faction_presence_at": "2024-01-15T13:00:00Z",
+  "loyalty_decay_rate": 1.0,
+  "hours_since_presence": 0.5,
+  "loyalty_state": "secure",
+  "estimated_time_to_feral": null,
+  "estimated_time_to_lost": null,
+  "faction_characters_present": [
+    {
+      "unit_type": "avatar",
+      "unit_id": 22222,
+      "name": "Player Avatar"
+    },
+    {
+      "unit_type": "npc",
+      "unit_id": 100,
+      "name": "Guard NPC"
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Territory not found
+- `403 Forbidden`: Territory doesn't belong to user's avatar
+
+#### GET /territories/{territory_id}/presence
+
+Check faction character presence in a territory.
+
+**Response:**
+```json
+{
+  "territory_id": 5,
+  "has_faction_presence": true,
+  "last_faction_presence_at": "2024-01-15T13:00:00Z",
+  "presence_check_interval_minutes": 5,
+  "faction_characters": [
+    {
+      "unit_type": "avatar",
+      "unit_id": 22222,
+      "name": "Player Avatar",
+      "world_x": 2000,
+      "world_y": 3000,
+      "distance_from_territory_center": 500
+    },
+    {
+      "unit_type": "npc",
+      "unit_id": 100,
+      "name": "Guard NPC",
+      "world_x": 1800,
+      "world_y": 2800,
+      "distance_from_territory_center": 300
+    }
+  ],
+  "total_faction_characters": 2
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Territory not found
+
+### NPC Management
+
+#### GET /game/npcs
+
+List NPCs with optional filters.
+
+**Query Parameters:**
+- `owner_id`: Filter by avatar owner - optional
+- `state`: Filter by NPC state ('idle', 'working', 'moving', 'fighting', 'resting', 'socializing', 'eating', 'training', 'patrolling', 'seeking') - optional
+- `npc_type_id`: Filter by NPC type - optional
+- `territory_id`: Filter by territory - optional
+- `mortal_class`: Filter by mortal class ('mortal', 'cultivator') - optional
+- `in_combat`: Filter by combat status (true/false) - optional
+- `limit`: Number of results (default: 50, max: 100) - optional
+- `offset`: Pagination offset - optional
+
+**Response:**
+```json
+{
+  "npcs": [
+    {
+      "id": 100,
+      "name": "Worker NPC",
+      "npc_type": "worker",
+      "owner_id": 22222,
+      "state": "working",
+      "world_x": 2000,
+      "world_y": 3000,
+      "health": 100,
+      "max_health": 100,
+      "stamina_pool": 75.0,
+      "stamina_capacity": 100.0,
+      "mortal_class": "mortal",
+      "current_job_id": 50,
+      "current_job_building_id": 100,
+      "in_combat": false,
+      "cultivation_level": 0
+    }
+  ],
+  "pagination": {
+    "total": 45,
+    "limit": 50,
+    "offset": 0,
+    "has_more": false
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
+
+#### GET /game/npcs/{npc_id}
+
+Get detailed information about an NPC.
+
+**Response:**
+```json
+{
+  "id": 100,
+  "name": "Worker NPC",
+  "npc_type_id": 1,
+  "npc_type": "worker",
+  "ethnicity_id": 5,
+  "ethnicity": "Bison Faun",
+  "owner_id": 22222,
+  "world_x": 2000,
+  "world_y": 3000,
+  "facing_angle": 45.0,
+  "health": 100,
+  "max_health": 100,
+  "stamina_pool": 75.0,
+  "stamina_capacity": 100.0,
+  "state": "working",
+  "mortal_class": "mortal",
+  "body": 12,
+  "mind": 10,
+  "spirit": 8,
+  "qi_pool": 0.0,
+  "qi_capacity": 0.0,
+  "cultivation_level": 0,
+  "skills": {
+    "construction": 5,
+    "mining": 3
+  },
+  "personality_traits": {
+    "friendly": 0.7,
+    "cautious": 0.4,
+    "ambitious": 0.6
+  },
+  "ego_score": 15,
+  "current_job_id": 50,
+  "current_job": {
+    "id": 50,
+    "building_id": 100,
+    "building_name": "Sect Hall",
+    "job_type": "construction",
+    "status": "in_progress"
+  },
+  "in_combat": false,
+  "created_at": "2024-01-01T10:00:00Z",
+  "updated_at": "2024-01-21T15:30:00Z"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: NPC not found
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: NPC doesn't belong to user's avatar
+
+#### GET /game/npcs/{npc_id}/state
+
+Get NPC current state and status information.
+
+**Response:**
+```json
+{
+  "npc_id": 100,
+  "state": "working",
+  "state_description": "NPC is actively performing job duties at assigned building",
+  "current_job_id": 50,
+  "current_location": {
+    "world_x": 2000,
+    "world_y": 3000,
+    "building_id": 100,
+    "building_name": "Sect Hall"
+  },
+  "health_status": {
+    "health": 100,
+    "max_health": 100,
+    "health_percentage": 100.0
+  },
+  "stamina_status": {
+    "stamina_pool": 75.0,
+    "stamina_capacity": 100.0,
+    "stamina_percentage": 75.0
+  },
+  "in_combat": false,
+  "last_state_change_at": "2024-01-21T09:00:00Z"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: NPC not found
+- `401 Unauthorized`: Not authenticated
+
+#### GET /game/npcs/{npc_id}/needs
+
+Get NPC current needs (calculated dynamically).
+
+**Response:**
+```json
+{
+  "npc_id": 100,
+  "needs": {
+    "hunger": {
+      "current": 65.0,
+      "threshold": 40.0,
+      "critical_threshold": 20.0,
+      "urgency": 0.0,
+      "status": "satisfied"
+    },
+    "rest": {
+      "current": 75.0,
+      "threshold": 30.0,
+      "critical_threshold": 20.0,
+      "urgency": 0.0,
+      "status": "satisfied"
+    },
+    "social": {
+      "current": 45.0,
+      "threshold": 40.0,
+      "critical_threshold": 30.0,
+      "urgency": 0.125,
+      "status": "low"
+    },
+    "safety": {
+      "current": 85.0,
+      "threshold": 40.0,
+      "critical_threshold": 30.0,
+      "urgency": 0.0,
+      "status": "secure"
+    },
+    "work_satisfaction": {
+      "current": 72.0,
+      "threshold": 40.0,
+      "critical_threshold": 30.0,
+      "urgency": 0.0,
+      "status": "good"
+    },
+    "autonomy": {
+      "current": 90.0,
+      "threshold": 30.0,
+      "critical_threshold": 20.0,
+      "urgency": 0.0,
+      "status": "high"
+    }
+  },
+  "priority_need": "social",
+  "calculated_at": "2024-01-21T15:30:00Z"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: NPC not found
+- `401 Unauthorized`: Not authenticated
+
+**Note:** Needs are calculated dynamically based on current state, events, relationships, and territory conditions. Values are not stored in the database.
+
+#### GET /game/npcs/{npc_id}/job
+
+Get current job information for an NPC.
+
+**Response:**
+```json
+{
+  "npc_id": 100,
+  "current_job": {
+    "id": 50,
+    "job_type": "construction",
+    "building_id": 100,
+    "building_name": "Sect Hall",
+    "building_type": "sect_hall",
+    "status": "in_progress",
+    "assigned_at": "2024-01-20T09:00:00Z",
+    "started_at": "2024-01-20T09:05:00Z",
+    "job_satisfaction": 72.0,
+    "required_skills": {
+      "construction": 3
+    },
+    "npc_skill_levels": {
+      "construction": 5
+    },
+    "coworkers": [
+      {
+        "npc_id": 101,
+        "name": "Coworker NPC",
+        "relationship_value": 45.0
+      }
+    ]
+  },
+  "has_job": true
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: NPC not found
+- `401 Unauthorized`: Not authenticated
+
+#### PUT /game/npcs/{npc_id}/job
+
+Assign or reassign an NPC to a job.
+
+**Request:**
+```json
+{
+  "building_id": 100,
+  "force_assignment": false  // If true, overrides NPC's job preferences
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "npc_id": 100,
+  "job": {
+    "id": 51,
+    "building_id": 100,
+    "building_name": "Sect Hall",
+    "job_type": "construction",
+    "assigned_at": "2024-01-21T15:30:00Z",
+    "status": "assigned"
+  },
+  "message": "NPC assigned to job successfully"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Job assigned successfully
+- `400 Bad Request`: Building doesn't need workers, NPC not available, or insufficient slots
+- `404 Not Found`: NPC or building not found
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: NPC or building doesn't belong to user's avatar
+- `409 Conflict`: NPC already assigned to this building or cannot accept assignment (low autonomy, high ego)
+
+**Note:** High ego or cultivator NPCs may reject assignments if autonomy is low. Use `force_assignment` carefully.
+
+#### DELETE /game/npcs/{npc_id}/job
+
+Remove NPC from current job.
+
+**Response:**
+```json
+{
+  "success": true,
+  "npc_id": 100,
+  "message": "NPC removed from job successfully"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Job removed successfully
+- `404 Not Found`: NPC not found or not assigned to a job
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: NPC doesn't belong to user's avatar
 
 ### NPC Relationships and Events
 
@@ -4007,6 +5017,531 @@ Get all 1m gameplay tiles owned by an avatar's territory.
 
 **Permissions:**
 - Users can only view tiles for their own avatars
+
+### Cultivation Actions
+
+#### GET /avatars/{avatar_id}/cultivation
+
+Get cultivation details for an avatar.
+
+**Request:** (Headers: Authorization)
+
+**Response:**
+```json
+{
+  "avatar_id": 11111,
+  "cultivation_level": 3,
+  "cultivation_experience": 0.65,
+  "qi_pool": 240.0,
+  "qi_capacity": 320.0,
+  "qi_required_for_next_tier": 640.0,
+  "primary_attunement": "Fire",
+  "cultivation_concept": "The Phoenix's Rebirth - Strength through destruction and renewal",
+  "last_tribulation_at": "2024-01-10T14:30:00Z",
+  "tribulation_count": 2,
+  "tribulation_failures": 0,
+  "next_tier": 4,
+  "next_tier_name": "Qi Novice",
+  "next_tribulation_type": "Internal Refinement",
+  "can_attempt_breakthrough": false,
+  "breakthrough_requirements": {
+    "qi_capacity_met": false,
+    "qi_required": 640.0,
+    "current_capacity": 320.0,
+    "cultivation_experience_met": true
+  },
+  "tier_info": {
+    "tier": 3,
+    "name": "Spiritual Awakening",
+    "grouping": "Mortal Foundation (Tiers 1-4)",
+    "abilities": [
+      "Perceives ley-lines and Qi nodes",
+      "Senses and communicates with spirits"
+    ]
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Avatar doesn't belong to user
+- `404 Not Found`: Avatar not found
+
+#### POST /avatars/{avatar_id}/cultivation/attempt-breakthrough
+
+Attempt to breakthrough to the next cultivation tier. This triggers Qi compression and may trigger a tribulation.
+
+**Request:**
+```json
+{
+  "confirm": true
+}
+```
+
+**Response (Success - No Tribulation):**
+```json
+{
+  "success": true,
+  "message": "Breakthrough successful. Tier increased without tribulation.",
+  "avatar": {
+    "cultivation_level": 4,
+    "cultivation_experience": 0.0,
+    "qi_capacity": 640.0,
+    "qi_pool": 240.0
+  }
+}
+```
+
+**Response (Success - Tribulation Triggered):**
+```json
+{
+  "success": true,
+  "message": "Breakthrough initiated. Tribulation triggered.",
+  "tribulation": {
+    "id": 12345,
+    "tier": 4,
+    "type": "Internal Refinement",
+    "theme": "Test of Willpower & Endurance",
+    "status": "active",
+    "started_at": "2024-01-15T10:30:00Z",
+    "estimated_duration": "2-4 hours",
+    "challenges": [
+      "Sensory deprivation",
+      "Hallucinations",
+      "Qi poisoning resistance"
+    ]
+  },
+  "avatar": {
+    "cultivation_level": 4,
+    "cultivation_experience": 0.0,
+    "qi_capacity": 640.0,
+    "qi_pool": 240.0
+  }
+}
+```
+
+**Response (Failure - Requirements Not Met):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "BREAKTHROUGH_REQUIREMENTS_NOT_MET",
+    "message": "Cannot attempt breakthrough. Qi capacity must be doubled.",
+    "requirements": {
+      "qi_capacity_met": false,
+      "qi_required": 640.0,
+      "current_capacity": 320.0
+    }
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Breakthrough attempted (may trigger tribulation)
+- `400 Bad Request`: Requirements not met or invalid request
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Avatar doesn't belong to user
+- `404 Not Found`: Avatar not found
+
+**Note:**
+- Breakthrough requires `qi_capacity` to be doubled from previous tier
+- Breakthrough may trigger a tribulation based on tier range
+- Tribulations are personalized tests of mind, body, and spirit
+- Failure consequences vary by tribulation severity
+
+#### GET /avatars/{avatar_id}/cultivation/tribulation/{tribulation_id}
+
+Get details of an active tribulation.
+
+**Request:** (Headers: Authorization)
+
+**Response:**
+```json
+{
+  "tribulation": {
+    "id": 12345,
+    "avatar_id": 11111,
+    "tier": 4,
+    "type": "Internal Refinement",
+    "theme": "Test of Willpower & Endurance",
+    "status": "active",
+    "started_at": "2024-01-15T10:30:00Z",
+    "completed_at": null,
+    "estimated_duration": "2-4 hours",
+    "challenges": [
+      "Sensory deprivation",
+      "Hallucinations",
+      "Qi poisoning resistance"
+    ],
+    "principles": {
+      "balance": "Greater power demands equivalent price",
+      "karma": "Past actions shape challenges",
+      "attunement": "Reflects primary Qi attunement"
+    },
+    "failure_consequences": [
+      "Weakened Qi Sensitivity",
+      "Core Instability",
+      "Shattered Meridians",
+      "Cultivation Deviation",
+      "Death"
+    ]
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Avatar doesn't belong to user
+- `404 Not Found`: Avatar or tribulation not found
+
+#### POST /admin/avatars/{avatar_id}/cultivation/trigger-tribulation
+
+Manually trigger a tribulation for an avatar (Admin/StoryTeller only).
+
+**Request:**
+```json
+{
+  "tier": 5,
+  "type": "Elemental Trial",
+  "reason": "Story event - testing character's resolve"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Tribulation triggered successfully",
+  "tribulation": {
+    "id": 12346,
+    "avatar_id": 11111,
+    "tier": 5,
+    "type": "Elemental Trial",
+    "theme": "Faces own Qi as force of nature",
+    "status": "active",
+    "started_at": "2024-01-15T11:00:00Z"
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Tribulation triggered
+- `400 Bad Request`: Invalid input or avatar not ready
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not Admin or StoryTeller
+- `404 Not Found`: Avatar not found
+
+**Permissions:**
+- Admins and StoryTellers only
+
+#### GET /game/npcs/{npc_id}/cultivation
+
+Get cultivation details for an NPC.
+
+**Request:** (Headers: Authorization)
+
+**Response:**
+```json
+{
+  "npc_id": 100,
+  "cultivation_level": 2,
+  "cultivation_experience": 0.35,
+  "qi_pool": 120.0,
+  "qi_capacity": 160.0,
+  "qi_required_for_next_tier": 320.0,
+  "primary_attunement": "Water",
+  "cultivation_concept": null,
+  "last_tribulation_at": null,
+  "tribulation_count": 0,
+  "tribulation_failures": 0,
+  "next_tier": 3,
+  "next_tier_name": "Spiritual Awakening",
+  "can_attempt_breakthrough": false,
+  "tier_info": {
+    "tier": 2,
+    "name": "Qi Channeler",
+    "grouping": "Mortal Foundation (Tiers 1-4)"
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
+- `404 Not Found`: NPC not found
+
+**Note:** NPCs may attempt breakthroughs automatically based on AI behavior, or manually via admin/storyteller actions.
+
+### Combat & Equipment
+
+#### GET /avatars/{avatar_id}/techniques
+
+Get all techniques learned by an avatar.
+
+**Request:** (Headers: Authorization)
+
+**Response:**
+```json
+{
+  "techniques": [
+    {
+      "id": 1,
+      "technique_id": 5,
+      "name": "Power Strike",
+      "category": "physical",
+      "tier": "basic",
+      "mastery_level": 3,
+      "experience": 125.5,
+      "learned_at": "2024-01-10T10:00:00Z"
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Avatar doesn't belong to user
+- `404 Not Found`: Avatar not found
+
+#### GET /game/npcs/{npc_id}/techniques
+
+Get all techniques learned by an NPC.
+
+**Request:** (Headers: Authorization)
+
+**Response:**
+```json
+{
+  "techniques": [
+    {
+      "id": 2,
+      "technique_id": 8,
+      "name": "Qi Blast",
+      "category": "qi",
+      "tier": "intermediate",
+      "mastery_level": 5,
+      "experience": 450.0,
+      "learned_at": "2024-01-05T14:30:00Z"
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
+- `404 Not Found`: NPC not found
+
+#### GET /avatars/{avatar_id}/equipment
+
+Get equipped equipment for an avatar.
+
+**Request:** (Headers: Authorization)
+
+**Response:**
+```json
+{
+  "weapon": {
+    "id": 10,
+    "name": "Iron Sword",
+    "weapon_type": "sword",
+    "quality_tier": "standard",
+    "attack_bonus": 12,
+    "damage_multiplier": 1.0
+  },
+  "armor": {
+    "id": 5,
+    "name": "Leather Armor",
+    "armor_type": "light",
+    "defense_bonus": 8,
+    "speed_penalty": 0.0
+  },
+  "accessories": [
+    {
+      "id": 3,
+      "name": "Strength Ring",
+      "accessory_type": "ring",
+      "stat_bonuses": {"strength": 2}
+    }
+  ],
+  "qi_focus": null
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Avatar doesn't belong to user
+- `404 Not Found`: Avatar not found
+
+#### PUT /avatars/{avatar_id}/equipment
+
+Equip or unequip items for an avatar.
+
+**Request:**
+```json
+{
+  "weapon_id": 10,
+  "armor_id": 5,
+  "accessory_1_id": 3,
+  "accessory_2_id": null,
+  "qi_focus_id": null
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "equipment": {
+    "weapon_id": 10,
+    "armor_id": 5,
+    "accessory_1_id": 3,
+    "accessory_2_id": null,
+    "qi_focus_id": null
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Equipment updated successfully
+- `400 Bad Request`: Invalid equipment IDs or unit cannot equip item
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Avatar doesn't belong to user
+- `404 Not Found`: Avatar or equipment not found
+
+#### GET /game/techniques
+
+Get list of available techniques (for learning/selection).
+
+**Query Parameters:**
+- `category`: Filter by category ('physical', 'qi', 'hybrid') - optional
+- `tier`: Filter by tier ('basic', 'intermediate', 'advanced', 'master') - optional
+- `requires_cultivation_tier`: Filter by minimum cultivation tier - optional
+- `required_skill_id`: Filter by required skill - optional
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 5,
+      "name": "Power Strike",
+      "slug": "power-strike",
+      "description": "A powerful physical strike that deals increased damage",
+      "category": "physical",
+      "tier": "basic",
+      "cost_type": "stamina",
+      "cost_amount": 20,
+      "damage_multiplier": 1.5,
+      "range_type": "melee",
+      "range_distance": 2,
+      "cooldown_seconds": 3,
+      "requires_cultivation_tier": 0,
+      "required_skill_id": 1,
+      "required_skill_level": 1
+    }
+  ],
+  "pagination": {
+    "total": 50,
+    "limit": 20,
+    "offset": 0,
+    "has_more": true
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
+
+#### GET /game/weapons
+
+Get list of available weapons.
+
+**Query Parameters:**
+- `weapon_type`: Filter by weapon type - optional
+- `quality_tier`: Filter by quality tier - optional
+- `qi_enhanceable`: Filter by Qi enhanceable status - optional
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 10,
+      "name": "Iron Sword",
+      "weapon_type": "sword",
+      "quality_tier": "standard",
+      "attack_bonus": 12,
+      "damage_multiplier": 1.0,
+      "speed_modifier": 1.0,
+      "range_meters": 2,
+      "critical_chance_bonus": 0.0,
+      "qi_enhanceable": true
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
+
+#### GET /game/armor
+
+Get list of available armor.
+
+**Query Parameters:**
+- `armor_type`: Filter by armor type ('light', 'medium', 'heavy') - optional
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 5,
+      "name": "Leather Armor",
+      "armor_type": "light",
+      "defense_bonus": 8,
+      "speed_penalty": 0.0,
+      "qi_efficiency_penalty": 0.0
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
+
+#### GET /game/accessories
+
+Get list of available accessories.
+
+**Query Parameters:**
+- `accessory_type`: Filter by accessory type ('ring', 'amulet', 'talisman', 'qi_focus') - optional
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 3,
+      "name": "Strength Ring",
+      "accessory_type": "ring",
+      "stat_bonuses": {"strength": 2}
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `401 Unauthorized`: Not authenticated
 
 ## Error Responses
 
