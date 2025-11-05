@@ -1116,6 +1116,78 @@ CREATE TABLE supply_chains (
 - Bonus increases with number of linked buildings in range
 - Maximum bonus cap prevents unlimited bonuses
 
+#### `paths`
+Automatic roads and paths generated from unit pathfinding.
+
+```sql
+CREATE TABLE paths (
+    id BIGSERIAL PRIMARY KEY,
+    start_building_id BIGINT REFERENCES buildings(id) ON DELETE SET NULL, -- Starting building (NULL if path starts from non-building)
+    end_building_id BIGINT REFERENCES buildings(id) ON DELETE SET NULL, -- Ending building (NULL if path ends at non-building)
+    start_x BIGINT, -- Starting coordinates if not from building
+    start_y BIGINT,
+    end_x BIGINT, -- Ending coordinates if not to building
+    end_y BIGINT,
+    waypoints JSONB NOT NULL, -- Path waypoints: [{"x": 1000, "y": 2000}, ...]
+    usage_count INTEGER DEFAULT 0, -- Number of times path has been used
+    last_used_at TIMESTAMP WITH TIME ZONE, -- Last time path was used
+    path_quality VARCHAR(50) DEFAULT 'none', -- 'none', 'path', 'rough_road', 'road', 'nice_road'
+    path_width REAL DEFAULT 1.0, -- Width in meters
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_paths_start_building (start_building_id),
+    INDEX idx_paths_end_building (end_building_id),
+    INDEX idx_paths_quality (path_quality),
+    INDEX idx_paths_last_used_at (last_used_at),
+    CHECK (path_quality IN ('none', 'path', 'rough_road', 'road', 'nice_road'))
+);
+```
+
+**Path Quality Progression:**
+- **none**: No visible path (0-10 uses)
+- **path**: Visible trail (11-50 uses)
+- **rough_road**: Dirt road (51-150 uses)
+- **road**: Standard road (151-500 uses)
+- **nice_road**: Paved road (501+ uses)
+
+**Path Decay:**
+- Paths decay if not used for extended periods
+- Quality decreases over time if unused
+- Decay time varies by quality level
+
+#### `terrain_modifications`
+Terrain modifications made for building placement.
+
+```sql
+CREATE TABLE terrain_modifications (
+    id BIGSERIAL PRIMARY KEY,
+    building_id BIGINT REFERENCES buildings(id) ON DELETE CASCADE,
+    modification_type VARCHAR(50) NOT NULL, -- 'flatten', 'elevate', 'support'
+    modification_area JSONB NOT NULL, -- Area modified: polygon or rectangle
+    elevation_change REAL, -- Elevation change in meters (if applicable)
+    slope_reduction REAL, -- Slope reduction in degrees (if applicable)
+    cost_data JSONB, -- Resources spent on modification: {"wood": 50, "stone": 25}
+    support_type VARCHAR(50), -- Type of support if modification_type = 'support': 'foundation', 'slope', 'advanced'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_terrain_modifications_building_id (building_id),
+    INDEX idx_terrain_modifications_type (modification_type),
+    CHECK (modification_type IN ('flatten', 'elevate', 'support')),
+    CHECK (support_type IN ('foundation', 'slope', 'advanced') OR support_type IS NULL)
+);
+```
+
+**Modification Types:**
+- **flatten**: Terrain flattened for building placement
+- **elevate**: Terrain elevated for building placement
+- **support**: Structural supports added for building on difficult terrain
+
+**Support Types:**
+- **foundation**: Basic supports for elevation differences
+- **slope**: Supports for buildings on slopes
+- **advanced**: Complex supports for large buildings on difficult terrain
+
 #### `supply_chain_links`
 Defines relationships between buildings in a supply chain.
 

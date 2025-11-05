@@ -20,7 +20,9 @@
   - [Skills Management](#skills-management)
   - [Building Skill Mappings](#building-skill-mappings)
   - [Building Management](#building-management)
+  - [Building Placement Validation](#building-placement-validation)
   - [Building Tier Upgrades](#building-tier-upgrades)
+  - [Paths & Roads](#paths--roads)
   - [Districts & Supply Chains](#districts--supply-chains)
   - [Territory Selection](#territory-selection)
   - [Territory Management](#territory-management)
@@ -2991,9 +2993,17 @@ Place a new building (Game Server API - WebSocket or REST).
   "building_type_id": 5,
   "world_x": 12345,
   "world_y": 67890,
-  "rotation": 0.0
+  "rotation": 0.0,
+  "approve_terrain_modification": true
 }
 ```
+
+**Request Fields:**
+- `building_type_id`: ID of building type to place (required)
+- `world_x`: X coordinate for building center (required)
+- `world_y`: Y coordinate for building center (required)
+- `rotation`: Rotation in radians (optional, default: 0.0)
+- `approve_terrain_modification`: Approve terrain modification if needed (optional, default: false)
 
 **Response:**
 ```json
@@ -3013,7 +3023,21 @@ Place a new building (Game Server API - WebSocket or REST).
     },
     "durability": 1000,
     "max_durability": 1000,
-    "next_maintenance_due_at": "2024-01-22T12:00:00Z"
+    "next_maintenance_due_at": "2024-01-22T12:00:00Z",
+    "proximity_bonuses": {
+      "supply_chain": 1.15,
+      "category": 1.05
+    }
+  },
+  "terrain_modification": {
+    "id": 10,
+    "modification_type": "flatten",
+    "cost_data": {
+      "lumber": 10,
+      "stone_blocks": 5
+    },
+    "elevation_change": -1.5,
+    "slope_reduction": 8.0
   },
   "message": "Building placement initiated. Construction in progress."
 }
@@ -3026,6 +3050,88 @@ Place a new building (Game Server API - WebSocket or REST).
 - `401 Unauthorized`: Not authenticated
 
 **Note:** This endpoint calculates skill bonuses and applies them to build time and costs.
+
+**Placement Validation:**
+- Server validates footprint polygon (no collisions)
+- Server validates door accessibility (all doors must be accessible)
+- Server validates terrain suitability (slope, elevation, terrain type)
+- Server validates qi source proximity (if building requires qi source)
+- Server calculates terrain modification costs (if needed)
+- Server calculates proximity bonus preview
+
+**Response Fields:**
+- `terrain_modification`: Only included if terrain was modified (null otherwise)
+- `proximity_bonuses`: Active proximity bonuses (supply chain, category, etc.)
+
+### Building Placement Validation
+
+#### POST /game/buildings/validate
+
+Validate a building placement before submitting (preview mode).
+
+**Request:**
+```json
+{
+  "building_type_id": 5,
+  "world_x": 12345,
+  "world_y": 67890,
+  "rotation": 0.0
+}
+```
+
+**Response:**
+```json
+{
+  "valid": true,
+  "validation_errors": [],
+  "warnings": [],
+  "footprint_valid": true,
+  "doors_accessible": true,
+  "terrain_suitable": true,
+  "qi_source_proximity": {
+    "required": false,
+    "nearest_qi_source_distance": 150.0,
+    "within_range": true
+  },
+  "terrain_modification_needed": {
+    "needed": true,
+    "modification_type": "flatten",
+    "estimated_cost": {
+      "lumber": 10,
+      "stone_blocks": 5
+    },
+    "estimated_time_seconds": 36
+  },
+  "proximity_bonus_preview": {
+    "supply_chain": 1.12,
+    "category": 1.03,
+    "nearby_buildings": [
+      {
+        "building_id": 95,
+        "building_name": "Warehouse",
+        "distance_meters": 45.0,
+        "bonus_contribution": 0.05
+      }
+    ]
+  },
+  "estimated_build_time": 180,
+  "estimated_cost": {
+    "lumber": 100,
+    "stone_blocks": 50
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Validation complete
+- `400 Bad Request`: Invalid input
+
+**Response Fields:**
+- `valid`: Whether placement is valid
+- `validation_errors`: Array of validation error messages
+- `warnings`: Array of warning messages (e.g., suboptimal placement)
+- `terrain_modification_needed`: Only included if terrain modification is needed (null otherwise)
+- `proximity_bonus_preview`: Preview of proximity bonuses at this location
 
 #### GET /game/buildings/{id}
 
@@ -3086,6 +3192,22 @@ Get building details.
   "last_maintenance_at": "2024-01-21T12:00:00Z",
   "next_maintenance_due_at": "2024-01-22T12:00:00Z",
   "maintenance_overdue": false,
+  "district_id": 5,
+  "district_bonus_applied": true,
+  "proximity_bonuses": {
+    "supply_chain": 1.15,
+    "category": 1.05
+  },
+  "terrain_modifications": [
+    {
+      "id": 10,
+      "modification_type": "flatten",
+      "elevation_change": -1.5,
+      "slope_reduction": 8.0,
+      "support_type": null,
+      "created_at": "2024-01-21T10:00:00Z"
+    }
+  ],
   "workers": [
     {
       "npc_id": 50,
@@ -3492,6 +3614,124 @@ Build the signature addition for the building's current tier.
 - `404 Not Found`: Building not found
 
 **Note:** Building remains functional during signature addition construction. Benefits apply when construction completes.
+
+### Paths & Roads
+
+#### GET /game/buildings/{building_id}/paths
+
+Get all paths/roads connected to a building.
+
+**Query Parameters:**
+- `path_quality`: Filter by path quality ('none', 'path', 'rough_road', 'road', 'nice_road') - optional
+
+**Response:**
+```json
+{
+  "building_id": 100,
+  "paths": [
+    {
+      "id": 50,
+      "start_building_id": 100,
+      "end_building_id": 200,
+      "end_building_name": "Warehouse",
+      "waypoints": [
+        {"x": 1000, "y": 2000},
+        {"x": 1200, "y": 2100},
+        {"x": 1400, "y": 2200}
+      ],
+      "usage_count": 150,
+      "last_used_at": "2024-01-21T15:30:00Z",
+      "path_quality": "road",
+      "path_width": 3.0,
+      "movement_speed_bonus": 0.15,
+      "distance_meters": 450.0
+    }
+  ],
+  "total_paths": 5,
+  "total_road_quality": 3
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Building not found
+- `401 Unauthorized`: Not authenticated
+
+**Note:** Paths are automatically generated from unit pathfinding. This endpoint shows existing paths.
+
+#### GET /game/paths/{path_id}
+
+Get detailed information about a specific path/road.
+
+**Response:**
+```json
+{
+  "id": 50,
+  "start_building_id": 100,
+  "start_building_name": "Sect Hall",
+  "end_building_id": 200,
+  "end_building_name": "Warehouse",
+  "waypoints": [
+    {"x": 1000, "y": 2000},
+    {"x": 1200, "y": 2100},
+    {"x": 1400, "y": 2200}
+  ],
+  "usage_count": 150,
+  "last_used_at": "2024-01-21T15:30:00Z",
+  "path_quality": "road",
+  "path_width": 3.0,
+  "movement_speed_bonus": 0.15,
+  "distance_meters": 450.0,
+  "usage_for_next_upgrade": 350,
+  "decay_time_remaining_days": 25,
+  "created_at": "2024-01-10T10:00:00Z",
+  "updated_at": "2024-01-21T15:30:00Z"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Path not found
+- `401 Unauthorized`: Not authenticated
+
+#### GET /game/territories/{territory_id}/paths
+
+Get all paths/roads in a territory.
+
+**Query Parameters:**
+- `path_quality`: Filter by path quality - optional
+- `min_quality`: Minimum path quality - optional
+
+**Response:**
+```json
+{
+  "territory_id": 5,
+  "paths": [
+    {
+      "id": 50,
+      "start_building_id": 100,
+      "end_building_id": 200,
+      "path_quality": "road",
+      "usage_count": 150,
+      "distance_meters": 450.0
+    }
+  ],
+  "total_paths": 12,
+  "path_quality_distribution": {
+    "none": 2,
+    "path": 3,
+    "rough_road": 4,
+    "road": 2,
+    "nice_road": 1
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK`: Success
+- `404 Not Found`: Territory not found
+- `403 Forbidden`: Territory doesn't belong to user's avatar
+- `401 Unauthorized`: Not authenticated
 
 ### Districts & Supply Chains
 
