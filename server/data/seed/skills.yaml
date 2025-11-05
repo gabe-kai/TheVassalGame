@@ -1,0 +1,308 @@
+# Skill Types Seed Data
+# Fields: slug, name, category, description, primary_attributes, related_buildings, xp_sources, unlocks, notes
+
+skills:
+  - slug: general_labor
+    name: General Labor
+    category: core
+    description: Unskilled physical work; hauling, setup, cleanup.
+    primary_attributes: [body, endurance]
+    related_buildings: [supply_depot, granary_millhouse, sect_hall]
+    xp_sources: [deliveries_completed, setup_tasks, maintenance_assist]
+    derived_influences:
+      carry_capacity: {body: 0.5, endurance: 0.5}
+      hauling_speed: {body: 0.3, endurance: 0.4, speed: 0.3}
+
+  - slug: construction
+    name: Construction
+    category: core
+    description: Assembly and finishing of structures; improves build time and cost.
+    primary_attributes: [strength, agility, focus]
+    related_buildings: [sect_hall, timberworks, stoneworks, smithy, supply_depot]
+    xp_sources: [build_time, milestones, quality_checks]
+    derived_influences:
+      build_time_multiplier: {strength: -0.2, agility: -0.2, focus: -0.2}
+      build_cost_multiplier: {focus: -0.1}
+
+  - slug: logistics
+    name: Logistics
+    category: core
+    description: Transport optimization, storage, flow control.
+    primary_attributes: [intellect, perception]
+    related_buildings: [supply_depot, granary_millhouse, transit_network]
+    xp_sources: [routes_optimized, spoilage_reduced]
+    derived_influences:
+      throughput: {intellect: 0.3, perception: 0.2}
+      spoilage_reduction: {intellect: 0.2}
+
+  - slug: logging
+    name: Logging
+    category: gathering
+    description: Felling, trimming, drying of timber.
+    primary_attributes: [strength, endurance]
+    related_buildings: [timberworks]
+    xp_sources: [lumber_harvested, refined_lumber_yield]
+    derived_influences:
+      harvest_rate: {strength: 0.4, endurance: 0.3}
+      injury_risk: {perception: -0.1}
+
+  - slug: quarrying
+    name: Quarrying
+    category: gathering
+    description: Extracting stone blocks from pits and quarries.
+    primary_attributes: [strength, endurance]
+    related_buildings: [stoneworks]
+    xp_sources: [stone_blocks_extracted, waste_reduced]
+    derived_influences:
+      harvest_rate: {strength: 0.4, endurance: 0.3}
+      waste_reduction: {focus: 0.2}
+
+  - slug: mining
+    name: Mining (Ore)
+    category: gathering
+    description: Extracting ores and rare materials.
+    primary_attributes: [strength, perception]
+    related_buildings: [ironworks, spirit_lode]
+    xp_sources: [ore_extracted, hazard_mitigation]
+    derived_influences:
+      harvest_rate: {strength: 0.3, endurance: 0.2}
+      hazard_avoidance: {perception: 0.3}
+
+  - slug: water_shaping
+    name: Water Shaping
+    category: gathering
+    description: Drawing, pumping, storage and distribution of water.
+    primary_attributes: [vitality, willpower]
+    related_buildings: [waterworks, condensation_pavilion]
+    xp_sources: [volume_processed, purity_maintained]
+    derived_influences:
+      volume_rate: {vitality: 0.3, willpower: 0.2}
+      purity_bonus: {clarity: 0.2}
+
+  - slug: agriculture
+    name: Agriculture
+    category: gathering
+    description: Cultivation of staple crops.
+    primary_attributes: [vitality, perception]
+    related_buildings: [farmland]
+    xp_sources: [crop_yield, pest_control]
+    derived_influences:
+      yield_bonus: {vitality: 0.3, perception: 0.2}
+      pest_resistance: {resonance: 0.1}
+
+  - slug: herb_cultivation
+    name: Herb Cultivation
+    category: gathering
+    description: Cultivating spirit herbs and botanicals.
+    primary_attributes: [perception, willpower]
+    related_buildings: [spirit_garden]
+    xp_sources: [herb_yield, potency]
+    derived_influences:
+      yield_bonus: {perception: 0.3}
+      potency_bonus: {attunement: 0.2}
+
+  - slug: hunting
+    name: Hunting & Trapping
+    category: gathering
+    description: Tracking, trapping, harvesting beasts.
+    primary_attributes: [perception, agility]
+    related_buildings: [adventurers_guild_hall, beastbane]
+    xp_sources: [successful_hunts, minimal_injuries]
+    derived_influences:
+      tracking_success: {perception: 0.3}
+      ambush_evasion: {agility: 0.2}
+
+  - slug: carpentry
+    name: Carpentry
+    category: processing
+    description: Joinery, furniture, prefabrication.
+    primary_attributes: [agility, intellect]
+    related_buildings: [carpenters_workshop, spiritwood_atelier]
+    xp_sources: [items_crafted, quality_rating]
+    derived_influences:
+      craft_speed: {agility: 0.2, intellect: 0.2}
+      quality_bonus: {focus: 0.2}
+
+  - slug: masonry
+    name: Masonry
+    category: processing
+    description: Cutting and shaping stone.
+    primary_attributes: [strength, focus]
+    related_buildings: [stonecutting_yard, spirit_masonry_forge]
+    xp_sources: [cut_accuracy, breakage_reduced]
+    derived_influences:
+      cut_accuracy: {focus: 0.3}
+      breakage_reduction: {strength: 0.1}
+
+  - slug: smithing
+    name: Smithing
+    category: processing
+    description: Forging tools, weapons, armor.
+    primary_attributes: [strength, willpower]
+    related_buildings: [smithy, ironworks, alloy_foundry]
+    xp_sources: [items_completed, durability_achieved]
+    derived_influences:
+      forge_speed: {strength: 0.2}
+      durability_bonus: {willpower: 0.2, focus: 0.1}
+
+  - slug: alchemy
+    name: Alchemy
+    category: processing
+    description: Brewing tonics and elixirs.
+    primary_attributes: [intellect, focus]
+    related_buildings: [alchemists_hall]
+    xp_sources: [batch_success, potency]
+    derived_influences:
+      success_rate: {intellect: 0.2, focus: 0.2}
+      potency_bonus: {clarity: 0.2}
+
+  - slug: apothecary
+    name: Apothecary
+    category: processing
+    description: Clinical healing and dispensary.
+    primary_attributes: [perception, willpower]
+    related_buildings: [spirit_apothecary]
+    xp_sources: [treatments_completed, recovery_outcomes]
+    derived_influences:
+      treatment_success: {perception: 0.2, willpower: 0.2}
+      recovery_rate: {resonance: 0.1}
+
+  - slug: milling
+    name: Milling & Storage
+    category: processing
+    description: Grain processing and storage preservation.
+    primary_attributes: [intellect, logistics]
+    related_buildings: [granary_millhouse]
+    xp_sources: [throughput, loss_reduction]
+    derived_influences:
+      throughput: {intellect: 0.2}
+      loss_reduction: {focus: 0.1}
+
+  - slug: cooking
+    name: Cooking
+    category: processing
+    description: Preparing meals including spirit-infused cuisine.
+    primary_attributes: [perception, charisma]
+    related_buildings: [spiritual_kitchen, feast_hall]
+    xp_sources: [meal_quality, buff_uptime]
+    derived_influences:
+      meal_quality: {perception: 0.2, charisma: 0.2}
+      buff_uptime: {resonance: 0.1}
+
+  - slug: crystal_refining
+    name: Crystal Refining
+    category: processing
+    description: Purifying and attuning mana crystals.
+    primary_attributes: [focus, spirit_power]
+    related_buildings: [crystal_refinery, qi_condenser_spire]
+    xp_sources: [purity_gain, throughput]
+    derived_influences:
+      purity_bonus: {focus: 0.2, spirit_power: 0.2}
+      throughput: {clarity: 0.1}
+
+  - slug: inscription
+    name: Inscription (Runes & Formations)
+    category: arcane
+    description: Carving runes, crafting cores, aligning arrays.
+    primary_attributes: [focus, clarity]
+    related_buildings: [rune_formation, spirit_masonry_forge]
+    xp_sources: [success_rate, network_stability]
+    derived_influences:
+      success_rate: {focus: 0.2, clarity: 0.2}
+      network_stability: {resonance: 0.2}
+
+  - slug: cultivation
+    name: Cultivation (Meditation)
+    category: arcane
+    description: Internal qi practice and breakthroughs.
+    primary_attributes: [willpower, spirit_power]
+    related_buildings: [meditation_hall, sect_hall]
+    xp_sources: [session_duration, breakthroughs]
+    derived_influences:
+      qi_regen: {spirit_power: 0.2, willpower: 0.2}
+      capacity_gain: {attunement: 0.2}
+
+  - slug: resonance_tuning
+    name: Resonance Tuning
+    category: arcane
+    description: Aligning materials/buildings for qi synergy.
+    primary_attributes: [resonance, perception]
+    related_buildings: [spiritwood_atelier, luminous_refinery, celestial_refinery]
+    xp_sources: [synergy_bonus_applied]
+    derived_influences:
+      synergy_bonus: {resonance: 0.3, perception: 0.1}
+
+  - slug: wardcraft
+    name: Wardcraft
+    category: arcane
+    description: Creating and maintaining defensive wards.
+    primary_attributes: [clarity, willpower]
+    related_buildings: [ward_bastion, fortified_wall, sentinel_tower]
+    xp_sources: [ward_uptime, defense_outcomes]
+    derived_influences:
+      ward_strength: {clarity: 0.2, willpower: 0.2}
+
+  - slug: administration
+    name: Administration
+    category: civic
+    description: Governance, scheduling, archives.
+    primary_attributes: [intellect, charisma]
+    related_buildings: [sect_hall, sect_archive, diplomatic_embassy]
+    xp_sources: [tasks_completed, unrest_reduced]
+    derived_influences:
+      task_efficiency: {intellect: 0.2}
+      unrest_reduction: {charisma: 0.2}
+
+  - slug: diplomacy
+    name: Diplomacy & Trade
+    category: civic
+    description: Negotiation, exchange, market operations.
+    primary_attributes: [charisma, intellect]
+    related_buildings: [crystal_exchange_pavilion, diplomatic_embassy]
+    xp_sources: [trade_margins, orders_processed]
+    derived_influences:
+      deal_quality: {charisma: 0.2, intellect: 0.1}
+      throughput: {intellect: 0.1}
+
+  - slug: festival
+    name: Festival Stewardry
+    category: civic
+    description: Event planning and morale rites.
+    primary_attributes: [charisma, willpower]
+    related_buildings: [feast_hall, amphitheater]
+    xp_sources: [event_success, morale_uptime]
+    derived_influences:
+      morale_uptime: {charisma: 0.2, willpower: 0.1}
+
+  - slug: martial_training
+    name: Martial Training
+    category: combat
+    description: Melee/ranged drills and tactics.
+    primary_attributes: [strength, agility, willpower]
+    related_buildings: [training_grounds, sentinel_tower]
+    xp_sources: [drill_performance, mission_outcomes]
+    derived_influences:
+      hit_rate: {agility: 0.2, perception: 0.1}
+      damage_bonus: {strength: 0.2}
+
+  - slug: beast_handling
+    name: Beast Handling
+    category: combat
+    description: Husbandry, taming, field deployment.
+    primary_attributes: [willpower, perception]
+    related_buildings: [beastbane, war_pavilion]
+    xp_sources: [control_stability, synergy]
+    derived_influences:
+      control_stability: {willpower: 0.2, perception: 0.1}
+
+  - slug: fortification
+    name: Fortification
+    category: combat
+    description: Building and maintaining defenses.
+    primary_attributes: [endurance, strength]
+    related_buildings: [fortified_wall, ward_bastion]
+    xp_sources: [construction_under_pressure, repairs]
+    derived_influences:
+      repair_speed: {endurance: 0.2, strength: 0.1}
+
+

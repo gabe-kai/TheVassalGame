@@ -1,0 +1,194 @@
+# Building to Skills Mapping
+# Fields: building_slug, required_skills, recommended_skills, employment_skill, notes
+
+mappings:
+  - building_slug: sect_hall
+    required_skills: [administration]
+    recommended_skills: [logistics, diplomacy]
+    employment_skill: administration
+
+  - building_slug: timberworks
+    required_skills: [logging]
+    recommended_skills: [construction, logistics]
+    employment_skill: logging
+
+  - building_slug: carpenters_workshop
+    required_skills: [carpentry]
+    recommended_skills: [construction, logistics]
+    employment_skill: carpentry
+
+  - building_slug: spiritwood_atelier
+    required_skills: [carpentry, resonance_tuning]
+    recommended_skills: [inscription]
+    employment_skill: carpentry
+
+  - building_slug: artisan_guild_hall
+    required_skills: [diplomacy]
+    recommended_skills: [administration]
+    employment_skill: diplomacy
+
+  - building_slug: stoneworks
+    required_skills: [quarrying]
+    recommended_skills: [construction]
+    employment_skill: quarrying
+
+  - building_slug: stonecutting_yard
+    required_skills: [masonry]
+    recommended_skills: [construction]
+    employment_skill: masonry
+
+  - building_slug: spirit_masonry_forge
+    required_skills: [masonry, inscription]
+    recommended_skills: [wardcraft]
+    employment_skill: masonry
+
+  - building_slug: rune_formation
+    required_skills: [inscription]
+    recommended_skills: [wardcraft]
+    employment_skill: inscription
+
+  - building_slug: farmland
+    required_skills: [agriculture]
+    recommended_skills: [water_shaping]
+    employment_skill: agriculture
+
+  - building_slug: granary_millhouse
+    required_skills: [milling]
+    recommended_skills: [logistics]
+    employment_skill: milling
+
+  - building_slug: spiritual_kitchen
+    required_skills: [cooking]
+    recommended_skills: [alchemy]
+    employment_skill: cooking
+
+  - building_slug: feast_hall
+    required_skills: [festival]
+    recommended_skills: [cooking]
+    employment_skill: festival
+
+  - building_slug: spirit_garden
+    required_skills: [herb_cultivation]
+    recommended_skills: [agriculture]
+    employment_skill: herb_cultivation
+
+  - building_slug: drying_pavilion
+    required_skills: [herb_cultivation]
+    recommended_skills: [alchemy]
+    employment_skill: herb_cultivation
+
+  - building_slug: alchemists_hall
+    required_skills: [alchemy]
+    recommended_skills: [apothecary]
+    employment_skill: alchemy
+
+  - building_slug: spirit_apothecary
+    required_skills: [apothecary]
+    recommended_skills: [alchemy]
+    employment_skill: apothecary
+
+  - building_slug: adventurers_guild_hall
+    required_skills: [hunting]
+    recommended_skills: [martial_training]
+    employment_skill: hunting
+
+  - building_slug: smithy
+    required_skills: [smithing]
+    recommended_skills: [masonry]
+    employment_skill: smithing
+
+  - building_slug: training_grounds
+    required_skills: [martial_training]
+    recommended_skills: [beast_handling]
+    employment_skill: martial_training
+
+  - building_slug: waterworks
+    required_skills: [water_shaping]
+    recommended_skills: [agriculture]
+    employment_skill: water_shaping
+
+  - building_slug: crystal_refinery
+    required_skills: [crystal_refining]
+    recommended_skills: [resonance_tuning]
+    employment_skill: crystal_refining
+
+  - building_slug: meditation_hall
+    required_skills: [cultivation]
+    recommended_skills: []
+    employment_skill: cultivation
+
+  - building_slug: crystal_exchange_pavilion
+    required_skills: [diplomacy]
+    recommended_skills: [administration]
+    employment_skill: diplomacy
+
+  - building_slug: qi_condenser_spire
+    required_skills: [crystal_refining]
+    recommended_skills: [resonance_tuning]
+    employment_skill: crystal_refining
+
+  - building_slug: condensation_pavilion
+    required_skills: [water_shaping]
+    recommended_skills: [alchemy]
+    employment_skill: water_shaping
+
+  - building_slug: fortified_wall
+    required_skills: [fortification]
+    recommended_skills: [wardcraft]
+    employment_skill: fortification
+
+  - building_slug: sentinel_tower
+    required_skills: [martial_training]
+    recommended_skills: [wardcraft]
+    employment_skill: martial_training
+
+  - building_slug: ward_bastion
+    required_skills: [wardcraft]
+    recommended_skills: [masonry]
+    employment_skill: wardcraft
+
+  - building_slug: beastbane
+    required_skills: [beast_handling]
+    recommended_skills: [martial_training]
+    employment_skill: beast_handling
+
+  - building_slug: sect_archive
+    required_skills: [administration]
+    recommended_skills: []
+    employment_skill: administration
+
+  - building_slug: diplomatic_embassy
+    required_skills: [diplomacy]
+    recommended_skills: [administration]
+    employment_skill: diplomacy
+
+  - building_slug: supply_depot
+    required_skills: [logistics]
+    recommended_skills: [general_labor]
+    employment_skill: logistics
+
+  - building_slug: transit_network
+    required_skills: [logistics]
+    recommended_skills: [construction]
+    employment_skill: logistics
+
+  - building_slug: teleport_gate
+    required_skills: [inscription]
+    recommended_skills: [resonance_tuning]
+    employment_skill: inscription
+
+  - building_slug: ironworks
+    required_skills: [mining]
+    recommended_skills: [smithing]
+    employment_skill: mining
+
+  - building_slug: alloy_foundry
+    required_skills: [smithing]
+    recommended_skills: [mining]
+    employment_skill: smithing
+
+  - building_slug: spirit_lode
+    required_skills: [mining]
+    recommended_skills: [resonance_tuning]
+    employment_skill: mining
+

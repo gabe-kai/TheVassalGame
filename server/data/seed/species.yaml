@@ -1,0 +1,413 @@
+# Species Seed Data
+# Each species includes ethnicities with qi themes and suggested stat modifiers
+
+species:
+  - name: "Faun"
+    slug: "faun"
+    description: "Grounded, resilient, and community-minded hybrid people of horn and hoof."
+    notes: "Terraced valleys and mountain forests; nature-attuned Qi cultivation."
+    ethnicities:
+      - name: "Bison"
+        slug: "faun_bison"
+        description: "Massive, broad-shouldered Fauns of the high plains; revered as builders and defenders."
+        qi_themes: ["earth", "endurance", "fortification", "body"]
+        stat_modifiers: {strength: 2, endurance: 2, willpower: 1, agility: -1}
+      - name: "Bongo"
+        slug: "faun_bongo"
+        description: "Forest-dwelling Fauns with spiral horns; attuned to music and ritual."
+        qi_themes: ["rhythm", "resonance", "harmony"]
+        stat_modifiers: {charisma: 2, perception: 1, willpower: 1}
+      - name: "Eland"
+        slug: "faun_eland"
+        description: "Graceful plains wanderers, tall and calm; meditative patience."
+        qi_themes: ["stillness", "stamina", "focus"]
+        stat_modifiers: {endurance: 2, willpower: 2}
+      - name: "Gazelle"
+        slug: "faun_gazelle"
+        description: "Swift and agile; known for dancing footwork and aerial grace."
+        qi_themes: ["wind", "speed", "evasion"]
+        stat_modifiers: {agility: 2, speed: 2, endurance: -1}
+      - name: "Ibex"
+        slug: "faun_ibex"
+        description: "Mountain-climbing ascetics with curling horns and boundless balance."
+        qi_themes: ["stone", "traction", "pathfinding"]
+        stat_modifiers: {agility: 1, endurance: 2, perception: 1}
+      - name: "Kudu"
+        slug: "faun_kudu"
+        description: "Ritualistic and stately; often administrators or priests."
+        qi_themes: ["order", "ceremony", "stability"]
+        stat_modifiers: {willpower: 2, charisma: 1, intellect: 1}
+      - name: "Okapi"
+        slug: "faun_okapi"
+        description: "Reclusive forest scholars; secretive and wise."
+        qi_themes: ["shadow", "concealment", "awareness"]
+        stat_modifiers: {perception: 2, intellect: 1, agility: 1}
+      - name: "Springbok"
+        slug: "faun_springbok"
+        description: "Playful nomads of the steppe; bounding leaps and cheer."
+        qi_themes: ["air", "vitality", "regeneration"]
+        stat_modifiers: {speed: 2, vitality: 1, charisma: 1}
+      - name: "Water Buffalo"
+        slug: "faun_water_buffalo"
+        description: "Agricultural Fauns of river and field; patient, enduring, communal."
+        qi_themes: ["water", "labor", "fertility"]
+        stat_modifiers: {endurance: 2, strength: 1, willpower: 1}
+
+  - name: "Avian"
+    slug: "avian"
+    description: "Light-boned, keen-eyed hybrids between human and bird. Societies built around flight, freedom, vigilance."
+    notes: "Scouts, messengers, and sages of the upper winds."
+    ethnicities:
+      - name: "Falcon"
+        slug: "avian_falcon"
+        description: "Swift, sharp-eyed, and disciplined; ideal sentinels and warriors."
+        qi_themes: ["wind", "precision", "speed"]
+        stat_modifiers: {perception: 2, speed: 2, willpower: -1}
+      - name: "Eagle"
+        slug: "avian_eagle"
+        description: "Regal and commanding; often sect leaders or emissaries."
+        qi_themes: ["sun", "leadership", "will"]
+        stat_modifiers: {willpower: 2, charisma: 1, strength: 1}
+      - name: "Owl"
+        slug: "avian_owl"
+        description: "Silent and contemplative night-watchers; lorekeepers and diviners."
+        qi_themes: ["moon", "dreams", "silence"]
+        stat_modifiers: {perception: 2, intellect: 2, speed: -1}
+      - name: "Crane"
+        slug: "avian_crane"
+        description: "Tall, elegant, and serene; embodiment of longevity and balance."
+        qi_themes: ["harmony", "balance", "healing"]
+        stat_modifiers: {balance: 2, willpower: 1, charisma: 1}
+      - name: "Swan"
+        slug: "avian_swan"
+        description: "Amphibious and diplomatic; beauty and emotional depth."
+        qi_themes: ["water_wind", "empathy", "restoration"]
+        stat_modifiers: {charisma: 2, willpower: 1, perception: 1}
+      - name: "Raven"
+        slug: "avian_raven"
+        description: "Omen-speakers and illusionists of shadowed politics."
+        qi_themes: ["shadow", "deceit", "duality"]
+        stat_modifiers: {intellect: 2, perception: 1, charisma: 1}
+      - name: "Hawk"
+        slug: "avian_hawk"
+        description: "Tactical and practical; guardians of borders and skies."
+        qi_themes: ["gale", "focus", "tactics"]
+        stat_modifiers: {perception: 2, willpower: 1, strength: 1}
+      - name: "Parrot"
+        slug: "avian_parrot"
+        description: "Vivid, social, and talkative; merchants and storytellers."
+        qi_themes: ["echo", "mimicry", "persuasion"]
+        stat_modifiers: {charisma: 2, intellect: 1, perception: 1}
+      - name: "Albatross"
+        slug: "avian_albatross"
+        description: "Nomads of the endless sea winds; navigation and endurance."
+        qi_themes: ["storm", "endurance", "navigation"]
+        stat_modifiers: {endurance: 2, perception: 1, willpower: 1}
+
+  - name: "Cecaelian"
+    slug: "cecaelian"
+    description: "Amphibious humanoids descended from cephalopods; fluid in form and mind."
+    notes: "Deep-sea sanctuaries and coastal cities; memory and adaptability."
+    ethnicities:
+      - name: "Octopus"
+        slug: "cecaelian_octopus"
+        description: "Versatile, cunning, flexible; masters of mimicry and stealth."
+        qi_themes: ["ink", "shapeshifting", "camouflage"]
+        stat_modifiers: {intellect: 1, agility: 1, perception: 1, charisma: 1}
+      - name: "Cuttlefish"
+        slug: "cecaelian_cuttlefish"
+        description: "Color-weavers and artisans; control light and pattern."
+        qi_themes: ["chromatic", "illusion", "artistry"]
+        stat_modifiers: {charisma: 2, intellect: 1, perception: 1}
+      - name: "Squid"
+        slug: "cecaelian_squid"
+        description: "Streamlined hunters of open waters; speed and kinetic control."
+        qi_themes: ["jet", "propulsion", "pressure"]
+        stat_modifiers: {speed: 2, agility: 1, endurance: 1}
+      - name: "Vampire Squid"
+        slug: "cecaelian_vampire_squid"
+        description: "Deep-sea mystics; bioluminescent veils and memory-keepers."
+        qi_themes: ["abyssal", "bioluminescence", "memory"]
+        stat_modifiers: {willpower: 2, perception: 1, intellect: 1}
+      - name: "Nautilus"
+        slug: "cecaelian_nautilus"
+        description: "Shell-bearing traditionalists; ancient architecture and genealogies."
+        qi_themes: ["shell", "protection", "geometry"]
+        stat_modifiers: {endurance: 2, willpower: 1, intellect: 1}
+      - name: "Blue-Ringed"
+        slug: "cecaelian_blue_ringed"
+        description: "Small but deadly; potent venomous qi for poisons and medicine."
+        qi_themes: ["toxin", "paralysis", "alchemy"]
+        stat_modifiers: {intellect: 2, agility: 1, perception: 1}
+      - name: "Glass Squid"
+        slug: "cecaelian_glass_squid"
+        description: "Translucent wanderers; elusive and observant."
+        qi_themes: ["refractive", "stealth", "scrying"]
+        stat_modifiers: {perception: 2, agility: 1, willpower: 1}
+      - name: "Argonaut"
+        slug: "cecaelian_argonaut"
+        description: "Female-led clans of psychic artisans; weave ethereal paper shells."
+        qi_themes: ["psychic", "wards", "creation"]
+        stat_modifiers: {willpower: 2, charisma: 1, intellect: 1}
+      - name: "Giant Squid"
+        slug: "cecaelian_giant_squid"
+        description: "Titanic trench guardians; strength and serenity."
+        qi_themes: ["leviathan", "pressure", "strength"]
+        stat_modifiers: {strength: 2, endurance: 2, speed: -1}
+
+  - name: "Chitinid"
+    slug: "chitinid"
+    description: "Insect-descended humanoids centered on order, cooperation, and transformation."
+    notes: "Hive-cities and burrowed fortresses; pheromantic councils and castes."
+    ethnicities:
+      - name: "Antid"
+        slug: "chitinid_antid"
+        description: "Tireless tunnel-builders and strategists; communal and tactical."
+        qi_themes: ["earth", "cooperation", "fortification", "unity"]
+        stat_modifiers: {endurance: 2, strength: 1, intellect: 1}
+      - name: "Beetlid"
+        slug: "chitinid_beetlid"
+        description: "Armored juggernauts; revered protectors."
+        qi_themes: ["iron", "defense", "momentum", "will"]
+        stat_modifiers: {strength: 2, endurance: 2, agility: -1}
+      - name: "Mantid"
+        slug: "chitinid_mantid"
+        description: "Mantis-like warriors with meditative focus."
+        qi_themes: ["cutting", "precision", "predation", "clarity"]
+        stat_modifiers: {agility: 2, perception: 1, willpower: 1}
+      - name: "Waspine"
+        slug: "chitinid_waspine"
+        description: "Agile, fierce, venom-channeling duelists."
+        qi_themes: ["venom", "aggression", "loyalty", "dueling"]
+        stat_modifiers: {speed: 1, agility: 1, willpower: 1, charisma: -1}
+      - name: "Butterine"
+        slug: "chitinid_butterine"
+        description: "Winged metamorphs attuned to rebirth and aesthetics."
+        qi_themes: ["metamorph", "beauty", "illusion", "empathy"]
+        stat_modifiers: {charisma: 2, intellect: 1, willpower: 1}
+      - name: "Termid"
+        slug: "chitinid_termid"
+        description: "Patient hive architects attuned to warmth and resonance."
+        qi_themes: ["hearth", "construction", "vibration", "resonance"]
+        stat_modifiers: {intellect: 1, endurance: 1, perception: 1, willpower: 1}
+      - name: "Fireflyn"
+        slug: "chitinid_fireflyn"
+        description: "Luminescent mystics; guides of night caravans and dreams."
+        qi_themes: ["luminescent", "light", "dream"]
+        stat_modifiers: {perception: 2, charisma: 1, willpower: 1}
+      - name: "Locustine"
+        slug: "chitinid_locustine"
+        description: "Nomadic swarm-callers; famine and renewal."
+        qi_themes: ["hunger", "storm", "rebirth"]
+        stat_modifiers: {speed: 2, willpower: 1, endurance: 1}
+      - name: "Spiderid"
+        slug: "chitinid_spiderid"
+        description: "Silk-spinning tacticians and weavers of fate."
+        qi_themes: ["web", "entrapment", "patience", "threads"]
+        stat_modifiers: {perception: 2, intellect: 1, agility: 1}
+
+  - name: "Predari"
+    slug: "predari"
+    description: "Predatory beast-kin who prize instinct, honor, and strength with restraint."
+    notes: "Rangers, hunters, sect guardians; Qi through muscle and the hunt."
+    ethnicities:
+      - name: "Lionid"
+        slug: "predari_lionid"
+        description: "Regal leaders of war-sects and city protectors."
+        qi_themes: ["solar", "courage", "leadership"]
+        stat_modifiers: {charisma: 2, willpower: 1, strength: 1}
+      - name: "Wolfen"
+        slug: "predari_wolfen"
+        description: "Pack-minded hunters bound to lunar cycles."
+        qi_themes: ["lunar", "tracking", "empathy", "cooperation"]
+        stat_modifiers: {perception: 1, endurance: 1, willpower: 1, charisma: 1}
+      - name: "Tigran"
+        slug: "predari_tigran"
+        description: "Disciplined solitary predators; stealth and strength."
+        qi_themes: ["predator", "strength", "stealth", "focus"]
+        stat_modifiers: {agility: 2, willpower: 1, strength: 1}
+      - name: "Panthir"
+        slug: "predari_panthir"
+        description: "Shadow-stalking assassins; jungle dwellers."
+        qi_themes: ["umbra", "camouflage", "precision", "silence"]
+        stat_modifiers: {agility: 2, perception: 1, intellect: 1}
+      - name: "Bearan"
+        slug: "predari_bearen"
+        description: "Stoic guardians with immense strength and patience."
+        qi_themes: ["stone_blood", "endurance", "balance", "grounding"]
+        stat_modifiers: {strength: 2, endurance: 2, speed: -1}
+      - name: "Foxen"
+        slug: "predari_foxen"
+        description: "Clever tricksters; charm, deceit, and mirage arts."
+        qi_themes: ["mirage", "misdirection", "shapeshifting", "luck"]
+        stat_modifiers: {charisma: 2, intellect: 1, perception: 1}
+      - name: "Hyenid"
+        slug: "predari_hyenid"
+        description: "Scavenger-sages; rites of death and rebirth."
+        qi_themes: ["carrion", "entropy", "fearless_vitality"]
+        stat_modifiers: {willpower: 2, endurance: 1, charisma: -1}
+      - name: "Leopardin"
+        slug: "predari_leopardin"
+        description: "Agile climbers and ambushers; urban and wild."
+        qi_themes: ["wind_claw", "agility", "motion", "fast_channeling"]
+        stat_modifiers: {agility: 2, speed: 1, perception: 1}
+      - name: "Direhound"
+        slug: "predari_direhound"
+        description: "Enormous wolf-like hunters bonded to scent and spirit."
+        qi_themes: ["spirit", "tracking", "endurance", "ancestral"]
+        stat_modifiers: {endurance: 2, willpower: 1, perception: 1}
+
+  - name: "Drakonid"
+    slug: "drakonid"
+    description: "Reptilian/draconic humanoids embodying endurance, wisdom, and transformation."
+    notes: "From deserts to volcanoes; serpentine path of coiling, rising, refining."
+    ethnicities:
+      - name: "Geckan"
+        slug: "drakonid_geckan"
+        description: "Agile wall-crawlers; curious and clever."
+        qi_themes: ["adhesion", "flexibility", "curiosity", "exploration"]
+        stat_modifiers: {agility: 2, perception: 1, intellect: 1}
+      - name: "Iguanid"
+        slug: "drakonid_iguanid"
+        description: "Sun-basking philosophers; patience and regeneration."
+        qi_themes: ["solar", "patience", "regeneration", "heat"]
+        stat_modifiers: {willpower: 2, endurance: 1, vitality: 1}
+      - name: "Viperan"
+        slug: "drakonid_viperan"
+        description: "Elegant serpentkin; venom cultivation and politics."
+        qi_themes: ["poison", "manipulation", "charm", "internal_power"]
+        stat_modifiers: {charisma: 1, intellect: 1, willpower: 1, agility: 1}
+      - name: "Caimanid"
+        slug: "drakonid_caimanid"
+        description: "Amphibious river warriors; thick-scaled and resolute."
+        qi_themes: ["water_stone", "resilience", "ambush", "tenacity"]
+        stat_modifiers: {endurance: 2, strength: 1, willpower: 1}
+      - name: "Komodan"
+        slug: "drakonid_komodan"
+        description: "Massive desert wanderers with oppressive aura; solitary sages."
+        qi_themes: ["flame", "intimidation", "longevity", "desert"]
+        stat_modifiers: {willpower: 2, strength: 1, endurance: 1}
+      - name: "Chamelid"
+        slug: "drakonid_chamelid"
+        description: "Color-shifting mystics; disguise and environmental blending."
+        qi_themes: ["spectrum", "illusion", "adaptability", "perception"]
+        stat_modifiers: {perception: 2, intellect: 1, agility: 1}
+      - name: "Turtan"
+        slug: "drakonid_turtan"
+        description: "Ancient shell-bearers; slow yet unstoppable wisdom keepers."
+        qi_themes: ["time", "protection", "endurance", "memory"]
+        stat_modifiers: {endurance: 2, willpower: 2, speed: -2}
+      - name: "Draconid"
+        slug: "drakonid_draconid"
+        description: "True dragon-blooded scions; rare, powerful, ascetic."
+        qi_themes: ["dragon", "transformation", "elemental", "transcendence"]
+        stat_modifiers: {strength: 2, willpower: 2, charisma: 1, agility: -1}
+      - name: "Basilid"
+        slug: "drakonid_basilid"
+        description: "Cold-eyed seers; gaze pierces deceit; solitude and fear."
+        qi_themes: ["petrify", "truth", "intimidation", "psychic"]
+        stat_modifiers: {intellect: 2, willpower: 1, charisma: -1}
+
+  - name: "Centaurid"
+    slug: "centaurid"
+    description: "Equine-bodied humanoids of endurance, motion, and plains honor."
+    notes: "Traders, outriders, and philosophers of the open plains."
+    ethnicities:
+      - name: "Horseborn"
+        slug: "centaurid_horseborn"
+        description: "Balanced archetype of plains riders."
+        qi_themes: ["wind_earth", "endurance", "travel", "stability_in_motion"]
+        stat_modifiers: {endurance: 2, speed: 1, willpower: 1}
+      - name: "Zebrid"
+        slug: "centaurid_zebrid"
+        description: "Striped, fleet nomads of sun-scorched savannas."
+        qi_themes: ["mirage", "rhythm", "unpredictability", "desert_survival"]
+        stat_modifiers: {speed: 2, agility: 1, willpower: 1}
+      - name: "Donarid"
+        slug: "centaurid_donarid"
+        description: "Stocky, hardy mountain folk; famed for mining and hauling."
+        qi_themes: ["stone", "perseverance", "load_bearing", "defense"]
+        stat_modifiers: {strength: 2, endurance: 2, agility: -1}
+      - name: "Elkian"
+        slug: "centaurid_elkian"
+        description: "Antlered forest dwellers; ceremonial hunters and guardians."
+        qi_themes: ["forest", "protection", "ritual", "regeneration"]
+        stat_modifiers: {perception: 1, willpower: 1, endurance: 1, charisma: 1}
+      - name: "Onagrin"
+        slug: "centaurid_onagrin"
+        description: "Slender desert couriers; minimalism and discipline."
+        qi_themes: ["sand", "patience", "endurance", "fasting"]
+        stat_modifiers: {endurance: 2, willpower: 1, speed: 1}
+      - name: "Clydian"
+        slug: "centaurid_clydian"
+        description: "Massive draft-built; city builders and battlefield chargers."
+        qi_themes: ["iron", "strength", "kinetic_defense", "civic_unity"]
+        stat_modifiers: {strength: 2, endurance: 2, speed: -1}
+      - name: "Hippogriffid"
+        slug: "centaurid_hippogriffid"
+        description: "Wing-assisted offshoots; rare aerial nomads."
+        qi_themes: ["sky", "dual_affinity", "flight", "aerial_balance"]
+        stat_modifiers: {agility: 2, perception: 1, speed: 1}
+      - name: "Unicorid"
+        slug: "centaurid_unicorid"
+        description: "Horned mystics; spiritual healing and insight."
+        qi_themes: ["purity", "healing", "light", "clarity"]
+        stat_modifiers: {willpower: 2, charisma: 1, intellect: 1}
+      - name: "Tarpanid"
+        slug: "centaurid_tarpanid"
+        description: "Wild, untamed steppe nomads; fierce independence."
+        qi_themes: ["storm", "feral_instinct", "freedom", "vitality"]
+        stat_modifiers: {speed: 2, endurance: 1, willpower: 1}
+
+  - name: "Merid"
+    slug: "merid"
+    description: "Amphibious, fish-tailed humanoids of current, voice, and communion."
+    notes: "Bridge ocean and shore; art, song, fluid diplomacy."
+    ethnicities:
+      - name: "Sirenid"
+        slug: "merid_sirenid"
+        description: "Enchanting singers; emotional resonance and mind influence."
+        qi_themes: ["voice", "charm", "empathy", "sound"]
+        stat_modifiers: {charisma: 2, perception: 1, intellect: 1}
+      - name: "Sharkid"
+        slug: "merid_sharkid"
+        description: "Predatory mariners; strong, fast, fiercely loyal."
+        qi_themes: ["blood", "ferocity", "loyalty", "tide"]
+        stat_modifiers: {strength: 2, speed: 1, endurance: 1}
+      - name: "Sealid"
+        slug: "merid_sealid"
+        description: "Warm, sociable coastal dwellers; playful wisdom."
+        qi_themes: ["tidal", "adaptability", "friendship", "resilience"]
+        stat_modifiers: {charisma: 1, endurance: 1, willpower: 1, perception: 1}
+      - name: "Koiid"
+        slug: "merid_koiid"
+        description: "Ornate and spiritual; art, meditation, water gardens."
+        qi_themes: ["reflection", "serenity", "beauty", "art"]
+        stat_modifiers: {willpower: 2, charisma: 1, intellect: 1}
+      - name: "Anglerid"
+        slug: "merid_anglerid"
+        description: "Deep-sea hunters with luminous lures; guides in darkness."
+        qi_themes: ["lantern", "illumination", "guidance", "abyssal"]
+        stat_modifiers: {perception: 2, willpower: 1, intellect: 1}
+      - name: "Rayid"
+        slug: "merid_rayid"
+        description: "Wide-finned gliders; calm mediators of coral plains."
+        qi_themes: ["flow", "grace", "pressure_redirection", "peacekeeping"]
+        stat_modifiers: {agility: 2, willpower: 1, charisma: 1}
+      - name: "Narwhalid"
+        slug: "merid_narwhalid"
+        description: "Arctic Merids with spiral horns; cold-water mastery."
+        qi_themes: ["ice", "endurance", "focus", "meditation"]
+        stat_modifiers: {endurance: 2, willpower: 1, intellect: 1}
+      - name: "Lionfishid"
+        slug: "merid_lionfishid"
+        description: "Exotic, venomous aristocrats; dazzling and deadly."
+        qi_themes: ["venom", "allure", "regality", "beauty_control"]
+        stat_modifiers: {charisma: 2, intellect: 1, perception: 1}
+      - name: "Eelid"
+        slug: "merid_eelid"
+        description: "Elongated, lightning-quick; stealth and ambush masters."
+        qi_themes: ["current", "electricity", "speed", "adaptability"]
+        stat_modifiers: {speed: 2, agility: 1, perception: 1}
+
+
