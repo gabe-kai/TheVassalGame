@@ -87,7 +87,16 @@ TheVassalGame/
 │   ├── api-specification.md       # Website REST API endpoints
 │   ├── building-types-reference.md # Building types reference and design documentation
 │   ├── resources-reference.md     # Resource types and production chains reference
-│   └── species-reference.md       # Playable species and ethnicities reference
+│   ├── skills-reference.md        # Skills system reference and design documentation
+│   ├── techniques-reference.md    # Combat techniques reference and design documentation
+│   ├── species-reference.md       # Playable species and ethnicities reference
+│   ├── qi-mana-mechanics.md       # Qi and mana generation, refinement, and cultivation mechanics
+│   ├── cultivation-mechanics.md   # Cultivation tiers, tribulations, and progression system
+│   ├── production-mechanics.md    # Production rate calculations and modifiers
+│   ├── combat-mechanics.md        # Combat system, techniques, weapons, ego, and AI behavior
+│   ├── territory-expansion-mechanics.md # Territory expansion, beast tides, loyalty, contested claims
+│   ├── npc-ai-behavior.md         # NPC AI, decision-making, behavior trees, and social systems
+│   └── DOCUMENTATION_GAPS.md      # Analysis of documentation gaps and missing systems
 │
 ├── server/                        # Game server code (Go)
 │   ├── README.md                 # Server setup and development guide
@@ -98,7 +107,11 @@ TheVassalGame/
 │   │   └── seed/                  # Seed data for initial game content
 │   │       ├── README.md         # Seed data structure and usage guide
 │   │       ├── buildings.yaml    # Building types seed data
-│   │       └── resources.yaml    # Resource types seed data
+│   │       ├── resources.yaml    # Resource types seed data
+│   │       ├── skills.yaml        # Skills system seed data
+│   │       ├── techniques.yaml    # Combat techniques seed data
+│   │       ├── species.yaml       # Species and ethnicities seed data
+│   │       └── building_skills.yaml # Building-to-skill mappings seed data
 │   │
 │   ├── [Planned] cmd/             # Application entry points
 │   │   └── gameserver/           # Main game server executable
@@ -323,6 +336,16 @@ This ensures the file structure remains accurate for future development sessions
 - **docs/api-specification.md**: Website API endpoints
 - **docs/building-types-reference.md**: Building types reference and design documentation
 - **docs/resources-reference.md**: Resource types and production chains reference
+- **docs/skills-reference.md**: Skills system reference and design documentation
+- **docs/techniques-reference.md**: Combat techniques reference and design documentation
+- **docs/species-reference.md**: Playable species and ethnicities reference
+- **docs/qi-mana-mechanics.md**: Qi and mana generation, refinement, and cultivation mechanics
+- **docs/cultivation-mechanics.md**: Cultivation tiers, tribulations, and progression system
+- **docs/production-mechanics.md**: Production rate calculations and modifiers
+- **docs/combat-mechanics.md**: Combat system, techniques, weapons, ego, and AI behavior
+- **docs/territory-expansion-mechanics.md**: Territory expansion, beast tides, loyalty, contested claims
+- **docs/npc-ai-behavior.md**: NPC AI, decision-making, behavior trees, and social systems
+- **docs/DOCUMENTATION_GAPS.md**: Analysis of documentation gaps and missing systems
 
 ### Key Decisions
 - **Server Language**: Go (primary), Rust (alternative)
